@@ -1,0 +1,22 @@
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+__pycache__
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local tooling (the game itself needs none of these)
+node_modules/
+npm-debug.log*
+.env
+
+# Exported save files and scratch output
+*.save.json
+embervale-save-*.json
+/tmp/
