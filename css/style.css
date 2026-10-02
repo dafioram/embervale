@@ -26,7 +26,7 @@ button { font-family: inherit; }
 img { -webkit-user-drag: none; }
 
 /* ---------- shared panel look ---------- */
-.panel, #console, #topbar, #tracker .tq, .pcard, #tooltip, .toast, #bossbar, #eventbar {
+.panel, #console, #topbar, #tracker .tq, .pcard, #tooltip, .toast, #target, #eventbar {
   background: linear-gradient(180deg, var(--wood-light), var(--wood) 30%, var(--wood-dark));
   border: 1px solid #000;
   box-shadow: inset 0 0 0 1px var(--brass), inset 0 0 0 3px rgba(0, 0, 0, 0.6), var(--shadow);
@@ -70,15 +70,18 @@ img { -webkit-user-drag: none; }
 #zone-name span { color: var(--dim); font-size: 14.5px; margin-left: 8px; }
 .top-right { display: flex; align-items: center; gap: 8px; }
 #gold { color: var(--gold); font-weight: 700; min-width: 70px; text-align: right; font-size: 17px; }
-#gold::after { content: ' g'; color: #c9a646; font-weight: 400; }
+#gold::after { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-left: 5px; vertical-align: -0.08em; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3b0, #f2c443 38%, #b8861c 75%, #7a5208); box-shadow: 0 0 0 1px #4a3005, inset 0 0 0 2px rgba(255, 230, 140, 0.35); }
+.coin { display: inline-block; width: 0.78em; height: 0.78em; margin-left: 3px; vertical-align: -0.06em; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3b0, #f2c443 38%, #b8861c 75%, #7a5208); box-shadow: 0 0 0 1px #4a3005, inset 0 0 0 2px rgba(255, 230, 140, 0.35); font-style: normal; }
 #clock { color: var(--dim); font-size: 14.5px; min-width: 50px; text-align: right; margin-right: 6px; }
 .tb { background: linear-gradient(180deg, #4a3826, #2a1f15); color: var(--ink); border: 1px solid #000; box-shadow: inset 0 0 0 1px #7a5f34; padding: 5px 13px; font-size: 14.5px; cursor: pointer; border-radius: 3px; }
 .tb:hover { box-shadow: inset 0 0 0 1px var(--brass-hi); }
 
 /* ---------- party portraits ---------- */
 #party { position: absolute; top: 46px; left: 8px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
-.pcard { position: relative; width: 94px; padding: 4px; border-radius: 4px; cursor: pointer; }
-.pcard img { width: 86px; height: 86px; display: block; border: 1px solid #000; border-radius: 2px; }
+.pcard { position: relative; width: 84px; padding: 4px; border-radius: 4px; cursor: pointer; }
+.pcard img { width: 76px; height: 76px; display: block; border: 1px solid #000; border-radius: 2px; }
 .pcard.sel { box-shadow: inset 0 0 0 2px #4fd36a, var(--shadow); }
 .pcard.active { box-shadow: inset 0 0 0 2px #9dffb0, 0 0 12px rgba(120, 255, 150, 0.45); }
 .pcard.dead img { filter: grayscale(1) brightness(0.5); }
@@ -129,19 +132,31 @@ img { -webkit-user-drag: none; }
 #pausetag { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); font-family: var(--title-font); font-size: 30px; color: var(--brass-hi); text-shadow: 0 2px 6px #000; pointer-events: none; }
 
 /* ---------- boss + event bars ---------- */
-#bossbar, #eventbar { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); width: min(520px, 60vw); padding: 6px 10px; border-radius: 4px; z-index: 6; }
-#eventbar { top: 102px; }
-.bb-name, .eb-title { font-family: var(--title-font); text-align: center; color: #ffb0a0; font-size: 14px; }
+#eventbar { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); width: min(520px, 60vw); padding: 6px 10px; border-radius: 4px; z-index: 6; }
+.eb-title { font-family: var(--title-font); text-align: center; font-size: 15px; }
+/* target frame: the enemy (or summon) you left-clicked, or a boss you're fighting */
+#target { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); width: min(500px, 56vw); display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-radius: 5px; z-index: 6; pointer-events: none; }
+#target.boss { box-shadow: inset 0 0 0 1px #d9483a, inset 0 0 0 3px rgba(0, 0, 0, 0.6), 0 0 18px rgba(255, 80, 40, 0.35); }
+.tg-portrait { width: 58px; height: 58px; border: 1px solid #000; box-shadow: 0 0 0 1px var(--brass); flex: none; }
+.tg-col { flex: 1; min-width: 0; }
+.tg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tg-name { font-family: var(--title-font); font-size: 17px; color: var(--brass-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-lvl { font-size: 14px; white-space: nowrap; }
+.tg-bar { position: relative; height: 18px; background: #000; border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.tg-fill { height: 100%; background: linear-gradient(180deg, #ff7a6a, #b8261a); transition: width 0.15s; }
+#target.friendly .tg-fill { background: linear-gradient(180deg, #7ee08f, #2f9a45); }
+.tg-hp { position: absolute; inset: 0; text-align: center; font-size: 12.5px; line-height: 18px; color: #fff; text-shadow: 0 1px 2px #000; font-weight: 600; }
+.tg-buffs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; min-height: 0; }
+.tg-buffs .buff { font-size: 12px; }
 .eb-title { color: var(--brass-hi); }
 .eb-sub { text-align: center; font-size: 13px; color: var(--dim); }
-.bb-bar, .eb-bar { height: 9px; background: #000; margin-top: 4px; border-radius: 2px; overflow: hidden; }
-.bb-fill { height: 100%; background: linear-gradient(180deg, #ff6a5a, #b8261a); transition: width 0.2s; }
+.eb-bar { height: 9px; background: #000; margin-top: 4px; border-radius: 2px; overflow: hidden; }
 .eb-bar i { display: block; height: 100%; background: linear-gradient(180deg, #ffd27a, #c9871a); }
 
 /* ---------- bottom console ----------
    Sizes scale with the window width (clamp), so the bar fills wide screens and
    still fits on small laptops. */
-:root { --ab: clamp(58px, 4.2vw, 82px); --slot: clamp(44px, 3.25vw, 64px); --cmdsz: clamp(38px, 2.7vw, 52px); --mmw: clamp(216px, 14.4vw, 286px); --console-h: clamp(142px, 9.3vw, 182px); }
+:root { --ab: clamp(54px, 3.7vw, 70px); --slot: clamp(44px, 3.25vw, 64px); --cmdsz: clamp(38px, 2.7vw, 52px); --mmw: clamp(216px, 14.4vw, 286px); --console-h: clamp(142px, 9.3vw, 182px); }
 #console { position: absolute; left: 0; right: 0; bottom: 0; height: var(--console-h); display: grid; grid-template-columns: auto minmax(260px, 1fr) auto auto auto; column-gap: clamp(14px, 1.6vw, 30px); align-items: center; padding: 10px 16px; border-radius: 6px 6px 0 0; }
 #console > * { height: 100%; }
 #console > *:not(:first-child) { border-left: 1px solid rgba(179, 138, 69, 0.3); padding-left: clamp(14px, 1.6vw, 30px); }
@@ -172,7 +187,7 @@ img { -webkit-user-drag: none; }
 .abil.targeting { box-shadow: inset 0 0 0 2px #fff, 0 0 12px #fff8; }
 .abil:hover { box-shadow: inset 0 0 0 2px var(--brass-hi); }
 .abil .cd { position: absolute; inset: 0; pointer-events: none; }
-.abil .cdt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 26px; color: #fff; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.abil .cdt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; color: #fff; text-shadow: 0 1px 3px #000; pointer-events: none; }
 .abil .key { position: absolute; right: 4px; bottom: 2px; font-size: 15px; font-weight: 800; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
 .abil .mana { position: absolute; left: 4px; bottom: 2px; font-size: 13px; color: #9cc4ff; text-shadow: 0 0 3px #000, 0 0 3px #000; }
 .abil .pips { position: absolute; top: 3px; left: 4px; display: flex; gap: 2px; }

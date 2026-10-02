@@ -35,8 +35,8 @@ G.fx = (() => {
       parts.push({ x, y, z: 14 + Math.random() * 10, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vz: (vz ? vz * 30 : 40) * (0.5 + Math.random()), g: vz ? 0 : 120, life: 0.5 + Math.random() * 0.4, t: 0, color, size: 1.5 + Math.random() * 2 });
     }
   }
-  function text(x, y, str, color = '#fff', size = 13, delay = 0) {
-    texts.push({ x: x + (Math.random() - 0.5) * 0.3, y, str, color, size, t: -delay, dur: 1.0 });
+  function text(x, y, str, color = '#fff', size = 13, delay = 0, opts = {}) {
+    texts.push({ x: x + (Math.random() - 0.5) * 0.3, y, str, color, size, t: -delay, dur: 1.0, coin: !!opts.coin });
   }
   function projectile(o) {
     projs.push({ x: o.from.x, y: o.from.y, z: 20, to: o.to, tx: o.to.x, ty: o.to.y, speed: o.speed || 10, color: o.color || '#fff', size: o.size || 3,

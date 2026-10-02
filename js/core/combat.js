@@ -8,6 +8,7 @@ G.combat = (() => {
     e.stunned = false; e.taunt = null;
     for (let i = e.buffs.length - 1; i >= 0; i--) {
       const b = e.buffs[i];
+      if (!b) continue; // a damage-over-time tick can kill the unit and clear its buffs mid-loop
       b.t -= dt;
       if (b.mods) for (const k in b.mods) m[k] += b.mods[k];
       if (b.stun) e.stunned = true;
@@ -104,9 +105,9 @@ G.combat = (() => {
     // Rewards
     const d = e.def;
     const lvl = e.level || d.level;
-    if (d.xp && !e.noXp) G.game.partyKillXp(lvl, d.xp);
-    const gold = U.rng(Date.now() + e.id).int(d.gold[0], d.gold[1]);
-    if (gold > 0) { G.game.addGold(gold, true); G.fx.text(e.x, e.y - 0.2, '+' + gold + 'g', '#ffd54a', 13, 0.4); }
+    if (d.xp && !e.noXp) G.game.partyKillXp(lvl, Math.round(d.xp * (e.xpMul || 1)));
+    const gold = Math.round(U.rng(Date.now() + e.id).int(d.gold[0], d.gold[1]) * (e.goldMul || 1));
+    if (gold > 0) { G.game.addGold(gold, true); G.fx.text(e.x, e.y - 0.2, '+' + gold, '#ffd54a', 13, 0.4, { coin: true }); }
     G.quests.onKill(e.defId);
     if (d.questDrop && G.quests.wants(d.questDrop.item) && Math.random() < d.questDrop.chance) {
       G.quests.onCollect(d.questDrop.item);

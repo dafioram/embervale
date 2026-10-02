@@ -431,7 +431,7 @@ G.sprites = (() => {
       ctx.restore();
       return;
     }
-    return humanoid(ctx, k, { ...o, weapon: d.weapon, hood: d.hood, ghost: d.ghost, trim: shade(d.color, -0.4), helm: d.boss, crown: false, big: d.size > 1.2,
+    return humanoid(ctx, k, { ...o, weapon: d.weapon, hood: d.hood, ghost: d.ghost, trim: shade(d.color, -0.4), helm: (d.boss && !d.crown) || d.helmet, crown: !!d.crown, big: d.size > 1.2,
       skin: d.ghost ? '#bcd7e6' : '#d9b08c', hoodColor: shade(d.color, -0.3), orb: d.accent });
   }
   function drawBeast(ctx, k, d, o) {
@@ -505,7 +505,7 @@ G.sprites = (() => {
   function boulderSprite(theme, v) {
     return sprite(`rock-${theme}-${v}`, 44, 40, (x, w, h) => {
       const cx = w / 2, by = h - 6;
-      const base = theme === 'swamp' ? '#6a6a58' : theme === 'cave' ? '#3a3230' : '#8a8a84';
+      const base = theme === 'swamp' ? '#6a6a58' : theme === 'cave' ? '#3a3230' : theme === 'deep' ? '#343a4c' : '#8a8a84';
       x.fillStyle = 'rgba(0,0,0,0.25)'; x.beginPath(); x.ellipse(cx, by, 15, 6, 0, 0, TAU); x.fill();
       x.fillStyle = base;
       x.beginPath(); x.moveTo(cx - 14, by); x.lineTo(cx - 12 - v, by - 12); x.lineTo(cx - 4, by - 20 + v); x.lineTo(cx + 8, by - 18); x.lineTo(cx + 14, by - 6); x.lineTo(cx + 12, by + 1); x.closePath(); x.fill();
@@ -675,10 +675,13 @@ G.sprites = (() => {
   // A small rendered portrait for a hero / NPC / unit.
   const portraitCache = {};
   // focus: sprite-space y (negative = up) that should sit at 42% of the frame
+  // Portraits are drawn at 2-3x their logical size so they stay sharp when shown large.
+  const HIRES = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
   function portrait(key, drawFn, size = 64, k = 2.6, focus = -24) {
     if (portraitCache[key]) return portraitCache[key];
-    const c = document.createElement('canvas'); c.width = c.height = size;
+    const c = document.createElement('canvas'); c.width = c.height = size * HIRES;
     const x = c.getContext('2d');
+    x.scale(HIRES, HIRES);
     const g = x.createRadialGradient(size / 2, size * 0.4, 4, size / 2, size / 2, size * 0.7);
     g.addColorStop(0, '#4a3f33'); g.addColorStop(1, '#1b1612');
     x.fillStyle = g; x.fillRect(0, 0, size, size);

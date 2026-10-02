@@ -31,7 +31,14 @@
       </div>
 
       <div id="tracker"></div>
-      <div id="bossbar" class="hidden"><div class="bb-name"></div><div class="bb-bar"><div class="bb-fill"></div></div></div>
+      <div id="target" class="hidden">
+        <img class="tg-portrait" alt="">
+        <div class="tg-col">
+          <div class="tg-head"><span class="tg-name"></span><span class="tg-lvl"></span></div>
+          <div class="tg-bar"><div class="tg-fill"></div><span class="tg-hp"></span></div>
+          <div class="tg-buffs"></div>
+        </div>
+      </div>
       <div id="eventbar" class="hidden"></div>
       <div id="toasts"></div>
       <div id="pausetag" class="hidden">Paused — press P</div>
@@ -83,6 +90,7 @@
   <script src="js/data/units.js"></script>
   <script src="js/data/zones.js"></script>
   <script src="js/data/quests.js"></script>
+  <script src="js/data/underhollow.js"></script>
   <!-- Systems -->
   <script src="js/core/worldgen.js"></script>
   <script src="js/core/audio.js"></script>

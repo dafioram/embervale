@@ -57,6 +57,7 @@ G.render = (() => {
     meadow: { bg: '#2c3a22', grass: ['#79a252', '#8cb05e', '#6a964a'], dirt: '#ab8a5c', stone: '#9b978c', water: '#3f80a0', field: '#c2a654', mud: '#6d6044' },
     forest: { bg: '#18241a', grass: ['#4a6a3a', '#577842', '#3f5e33'], dirt: '#7d6645', stone: '#7a776c', water: '#355f72', field: '#8a7a40', mud: '#5d5038' },
     swamp: { bg: '#1c2420', grass: ['#56653e', '#62714a', '#4a5838'], dirt: '#6a5d40', stone: '#6f6c60', water: '#36574b', field: '#7a7040', mud: '#5d5236' },
+    deep: { bg: '#07080c', grass: ['#3a3d48', '#40434f', '#34373f'], dirt: '#3e4250', stone: '#4a4e5c', water: '#20304a', field: '#3e4250', mud: '#33363f', cave: ['#454a5c', '#4e5366', '#3d4152'], rock: '#0b0c11' },
     cave: { bg: '#0a0807', grass: ['#3a302d', '#40352f', '#342b28'], dirt: '#4a3d34', stone: '#4a4440', water: '#2a3a40', field: '#4a3d34', mud: '#3a302a', cave: ['#56473d', '#615044', '#4c3f36'], rock: '#100c0b' },
   };
   function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
@@ -140,7 +141,13 @@ G.render = (() => {
       const [ix, iy] = iso(d.x, d.y);
       const px = ox + ix, py = iy;
       if (Z.cave) {
-        if (d.v < 3) { // ember cracks
+        if (Z.theme === 'deep' && d.v < 3) { // glowing crystal shards
+          const c = ['#7fd8ff', '#b79aff', '#8fe8d0'][d.v];
+          x.fillStyle = c; x.globalAlpha = 0.85;
+          x.beginPath(); x.moveTo(px - 3, py); x.lineTo(px - 1, py - 7); x.lineTo(px + 1, py); x.closePath(); x.fill();
+          x.beginPath(); x.moveTo(px, py); x.lineTo(px + 2.5, py - 5); x.lineTo(px + 4, py); x.closePath(); x.fill();
+          x.globalAlpha = 1;
+        } else if (d.v < 3) { // ember cracks
           x.strokeStyle = 'rgba(255,110,30,0.55)'; x.lineWidth = 1.4;
           x.beginPath(); x.moveTo(px - 6, py); x.lineTo(px - 1, py - 2); x.lineTo(px + 3, py + 1); x.lineTo(px + 8, py - 1); x.stroke();
           x.strokeStyle = 'rgba(255,200,90,0.5)'; x.lineWidth = 0.6; x.stroke();
@@ -264,7 +271,7 @@ G.render = (() => {
     if (!skip.fx) drawFx(ctx);
     ctx.restore();
 
-    if (!skip.light && (R.theme === 'cave' || R.theme === 'forest' || R.theme === 'swamp')) drawLighting(ctx);
+    if (!skip.light && (R.theme === 'cave' || R.theme === 'deep' || R.theme === 'forest' || R.theme === 'swamp')) drawLighting(ctx);
     if (!skip.overlay) drawOverlay(ctx);
   }
 
@@ -310,15 +317,60 @@ G.render = (() => {
     }
   }
 
+  // Stairs and holes for the Underhollow: a dark shaft going down, or steps rising up.
+  function drawStairs(ctx, ex, locked) {
+    const [ix, iy] = iso(ex.x, ex.y);
+    const rx = ex.r * HW * 1.25, ry = ex.r * HH * 1.25;
+    if (ex.style === 'up') {
+      const g = ctx.createLinearGradient(ix, iy - 70, ix, iy);
+      g.addColorStop(0, 'rgba(200,220,255,0)'); g.addColorStop(1, 'rgba(200,220,255,0.28)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(ix - rx * 0.6, iy); ctx.lineTo(ix - rx * 0.3, iy - 70); ctx.lineTo(ix + rx * 0.3, iy - 70); ctx.lineTo(ix + rx * 0.6, iy); ctx.fill();
+      for (let i = 0; i < 4; i++) {
+        const w = rx * (1 - i * 0.16), y = iy + 6 - i * 5;
+        ctx.fillStyle = i % 2 ? '#6a6460' : '#7a746c';
+        ctx.beginPath(); ctx.ellipse(ix, y, w, ry * (1 - i * 0.16), 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+      return;
+    }
+    // down shaft or sinkhole
+    ctx.fillStyle = ex.style === 'sinkhole' ? '#5a4632' : '#3a3f52';
+    ctx.beginPath(); ctx.ellipse(ix, iy, rx + 6, ry + 3, 0, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      ctx.fillStyle = ex.style === 'sinkhole' ? '#7a6a58' : '#565c72';
+      ctx.beginPath(); ctx.ellipse(ix + Math.cos(a) * (rx + 3), iy + Math.sin(a) * (ry + 1.5), 4, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    const g = ctx.createRadialGradient(ix, iy, 0, ix, iy, rx);
+    g.addColorStop(0, '#000'); g.addColorStop(0.7, '#08060a'); g.addColorStop(1, ex.style === 'sinkhole' ? '#2a2016' : '#1a1c28');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(ix, iy, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    if (ex.style === 'down') {
+      ctx.strokeStyle = 'rgba(140,150,180,0.5)'; ctx.lineWidth = 1.2;
+      for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.ellipse(ix, iy + i * 1.5, rx * (1 - i * 0.22), ry * (1 - i * 0.22), 0, Math.PI * 0.1, Math.PI * 0.9); ctx.stroke(); }
+    }
+    if (locked) {
+      // a sealing sigil while the guardian lives
+      const p = 0.6 + Math.sin(R.time * 3) * 0.25;
+      ctx.strokeStyle = `rgba(127,216,255,${p})`; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(ix, iy, rx * 0.8, ry * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ix - rx * 0.55, iy); ctx.lineTo(ix + rx * 0.55, iy); ctx.moveTo(ix, iy - ry * 0.55); ctx.lineTo(ix, iy + ry * 0.55); ctx.stroke();
+    } else {
+      const p = 0.5 + Math.sin(R.time * 2.5) * 0.25;
+      ctx.strokeStyle = `rgba(255,230,140,${p * 0.7})`; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.ellipse(ix, iy, rx + 9, ry + 5, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
   function isoEllipse(ctx, x, y, r) { const [ix, iy] = iso(x, y); ctx.beginPath(); ctx.ellipse(ix, iy, r * HW * ISO_R, r * HH * ISO_R, 0, 0, Math.PI * 2); }
 
   function drawGround(ctx, visible) {
     const inp = G.input;
     // exits
-    for (const ex of G.world.zone.exits) {
+    for (const ex of G.exitsOf(G.world.zone)) {
       const [ix, iy] = iso(ex.x, ex.y);
       if (!visible(ix, iy)) continue;
       const locked = ex.flag && !G.state.flags[ex.flag];
+      if (ex.style) { drawStairs(ctx, ex, locked); continue; }
       const pulse = 0.5 + Math.sin(R.time * 3) * 0.2;
       isoEllipse(ctx, ex.x, ex.y, ex.r * 0.9);
       ctx.fillStyle = locked ? `rgba(255,90,40,${0.12 * pulse})` : `rgba(255,230,140,${0.18 * pulse})`; ctx.fill();
@@ -329,7 +381,7 @@ G.render = (() => {
       if (e.dead && e.kind !== 'hero') continue;
       const sel = inp.selected.includes(e);
       const hov = inp.hover === e;
-      const tgt = inp.attackTarget === e;
+      const tgt = inp.attackTarget === e || inp.focus === e;
       if (!sel && !hov && !tgt) continue;
       const col = e.team === 'player' ? '#5dff7a' : e.team === 'enemy' ? '#ff5a4a' : '#ffd84a';
       isoEllipse(ctx, e.x, e.y, (e.r + 0.18) * (e.def && e.def.structure ? 1.3 : 1));
@@ -413,7 +465,7 @@ G.render = (() => {
   function drawCaveWall(ctx, p) {
     const h = 18 + p.hgt * 15;
     const [ax, ay] = iso(p.x, p.y), [bx, by] = iso(p.x + 1, p.y), [cx2, cy2] = iso(p.x + 1, p.y + 1), [dx, dy] = iso(p.x, p.y + 1);
-    const base = ['#211a18', '#251d1a', '#1e1816', '#271e1e'][p.v];
+    const base = (R.theme === 'deep' ? ['#1a1c26', '#1d2030', '#171922', '#202434'] : ['#211a18', '#251d1a', '#1e1816', '#271e1e'])[p.v];
     ctx.fillStyle = S.shade(base, -0.25);
     ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(cx2, cy2); ctx.lineTo(cx2, cy2 - h); ctx.lineTo(dx, dy - h); ctx.closePath(); ctx.fill();
     ctx.fillStyle = S.shade(base, -0.45);
@@ -482,12 +534,24 @@ G.render = (() => {
     const top = (a, b) => { const [ix, iy] = iso(a, b); return [ix, iy - H]; };
     ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1;
     if (st.cone) {
+      // four-sided spire that covers the whole top of the tower, with a little overhang
+      const o2 = 0.22;
+      const A2 = top(x - o2, y - o2), B2 = top(x + w + o2, y - o2), C2 = top(x + w + o2, y + h + o2), D2 = top(x - o2, y + h + o2);
+      [A2, B2, C2, D2].forEach((q) => (q[1] += 3));
       const [tx, ty] = top(x + w / 2, y + h / 2);
-      const rr = (w / 2 + 0.08) * HW * ISO_R;
-      ctx.fillStyle = st.roof;
-      ctx.beginPath(); ctx.moveTo(tx - rr, ty); ctx.lineTo(tx, ty - st.r * 1.5); ctx.lineTo(tx + rr, ty); ctx.ellipse(tx, ty, rr, rr / 2, 0, 0, Math.PI); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = S.shade(st.roof, 0.2); ctx.beginPath(); ctx.moveTo(tx - rr * 0.6, ty + 2); ctx.lineTo(tx, ty - st.r * 1.5); ctx.lineTo(tx - rr * 0.1, ty + 6); ctx.fill();
-      ctx.fillStyle = '#9fe8ff'; ctx.beginPath(); ctx.arc(tx, ty - st.r * 1.5 - 3, 3 + Math.sin(R.time * 3), 0, 7); ctx.fill();
+      const apex = [tx, ty - st.r * 1.5];
+      const face = (p1, p2, fill) => { ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(apex[0], apex[1]); ctx.closePath(); ctx.fill(); ctx.stroke(); };
+      face(A2, B2, S.shade(st.roof, -0.3));
+      face(D2, A2, S.shade(st.roof, -0.15));
+      face(B2, C2, S.shade(st.roof, -0.25));
+      face(C2, D2, st.roof);
+      // highlight ridge and eave trim
+      ctx.strokeStyle = S.shade(st.roof, 0.35); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(C2[0], C2[1]); ctx.lineTo(apex[0], apex[1]); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(D2[0], D2[1]); ctx.lineTo(C2[0], C2[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#9fe8ff'; ctx.beginPath(); ctx.arc(apex[0], apex[1] - 3, 3 + Math.sin(R.time * 3), 0, 7); ctx.fill();
       return;
     }
     const alongX = w >= h;
@@ -641,15 +705,23 @@ G.render = (() => {
     }
     // stun stars
     if (e.stunned) {
-      for (let i = 0; i < 3; i++) { const a = R.time * 5 + i * 2.1; ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(Math.cos(a) * 9, -50 * size + Math.sin(a) * 3, 2.2, 0, 7); ctx.fill(); }
+      for (let i = 0; i < 3; i++) { const a = R.time * 5 + i * 2.1; ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(Math.cos(a) * 9, -(unitHeight(e) - 4) + Math.sin(a) * 3, 2.2, 0, 7); ctx.fill(); }
     }
     // buff glows
     if (e.buffs.some((b) => b.id === 'roar')) { ctx.strokeStyle = 'rgba(255,215,100,0.6)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(0, -2, 14, 6, 0, 0, 7); ctx.stroke(); }
-    if (e.buffs.some((b) => b.id === 'mark')) { ctx.strokeStyle = '#ff6b6b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, -60 * size, 5, 0, 7); ctx.moveTo(-8, -60 * size); ctx.lineTo(8, -60 * size); ctx.moveTo(0, -68 * size); ctx.lineTo(0, -52 * size); ctx.stroke(); }
+    if (e.buffs.some((b) => b.id === 'mark')) { ctx.strokeStyle = '#ff6b6b'; ctx.lineWidth = 1.5; ctx.beginPath(); const my = unitHeight(e) + 6; ctx.arc(0, -my, 5, 0, 7); ctx.moveTo(-8, -my); ctx.lineTo(8, -my); ctx.moveTo(0, -my - 8); ctx.lineTo(0, -my + 8); ctx.stroke(); }
     if (e.buffs.some((b) => b.id === 'smoke')) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#b9acd6'; ctx.beginPath(); ctx.arc(0, -20, 18, 0, 7); ctx.fill(); }
     if (e.kind === 'summon' && e.ttl < 5 && e.ttl > 0) { ctx.globalAlpha = 0.5 + Math.sin(R.time * 12) * 0.3; }
     if (e.channel) { ctx.strokeStyle = 'rgba(255,240,180,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -22, 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - e.channel.t / e.channel.dur)); ctx.stroke(); }
     ctx.restore();
+  }
+
+  // How tall a unit stands on screen at zoom 1, so bars and markers sit just above it.
+  const SHAPE_H = { humanoid: 52, boar: 30, wolf: 30, spider: 24, blob: 30, stalker: 42, wisp: 36, imp: 36, golem: 50, ward: 34 };
+  function unitHeight(e) {
+    const d = e.def || {};
+    const base = e.kind === 'hero' || e.kind === 'npc' ? 52 : SHAPE_H[d.shape] || 44;
+    return base * (d.size || 1);
   }
 
   /* Which of the 8 screen directions a unit faces. The on-screen angle turns smoothly
@@ -788,7 +860,7 @@ G.render = (() => {
     g.addColorStop(0, `rgba(${c},0)`); g.addColorStop(1, `rgba(${c},${0.35 + Math.sin(t * 3) * 0.1})`);
     ctx.fillStyle = g; ctx.fillRect(ix - 6, iy - 50, 12, 50);
     const key = it.icon + it.color;
-    if (!lootImgs[key]) { const im = new Image(); im.src = S.icon(it.icon, it.color, 48); lootImgs[key] = im; }
+    if (!lootImgs[key]) { const im = new Image(); im.src = S.icon(it.icon, it.color, 96); lootImgs[key] = im; }
     const im = lootImgs[key];
     if (im.complete) ctx.drawImage(im, ix - 9, iy - 22 + Math.sin(t * 3) * 2, 18, 18);
   }
@@ -855,7 +927,8 @@ G.render = (() => {
     lx.setTransform(1, 0, 0, 1, 0, 0);
     lx.globalCompositeOperation = 'source-over';
     lx.clearRect(0, 0, L.width, L.height);
-    const dark = R.theme === 'cave' ? 0.62 : R.theme === 'swamp' ? 0.22 : 0.16;
+    const isCave = R.theme === 'cave' || R.theme === 'deep';
+    const dark = R.theme === 'deep' ? 0.66 : isCave ? 0.62 : R.theme === 'swamp' ? 0.22 : 0.16;
     lx.fillStyle = R.theme === 'swamp' ? `rgba(10,25,15,${dark})` : `rgba(5,5,10,${dark})`;
     lx.fillRect(0, 0, L.width, L.height);
     lx.globalCompositeOperation = 'destination-out';
@@ -867,14 +940,15 @@ G.render = (() => {
       lx.fillStyle = g; lx.beginPath(); lx.arc(s.x * d, (s.y - 10 * z) * d, r * z * d, 0, Math.PI * 2); lx.fill();
     };
     for (const e of G.world.entities) {
-      if (e.kind === 'hero' && !e.dead) hole(e.x, e.y, R.theme === 'cave' ? 230 : 300, 1);
-      else if (R.theme === 'cave' && !e.dead) {
+      if (e.kind === 'hero' && !e.dead) hole(e.x, e.y, isCave ? 230 : 300, 1);
+      else if (isCave && !e.dead) {
         if (e.kind === 'object' && (e.objKind === 'seal' || e.objKind === 'waystone')) hole(e.x, e.y, 120, 0.9);
-        else if (e.def && (e.def.shape === 'imp' || e.def.shape === 'golem' || e.defId === 'ash_zealot')) hole(e.x, e.y, 70, 0.6);
+        else if (e.def && (e.def.shape === 'imp' || e.def.shape === 'golem' || e.def.shape === 'wisp' || e.defId === 'ash_zealot')) hole(e.x, e.y, 70, 0.6);
         else if (e.kind === 'summon') hole(e.x, e.y, 80, 0.6);
       }
     }
-    if (R.theme === 'cave') for (const pr of G.fx.projs) hole(pr.x, pr.y, 60, 0.8);
+    if (isCave) for (const pr of G.fx.projs) hole(pr.x, pr.y, 60, 0.8);
+    if (isCave) for (const ex of G.exitsOf(G.world.zone)) hole(ex.x, ex.y, ex.style === 'up' ? 130 : 90, 0.75);
     lx.globalCompositeOperation = 'source-over';
     ctx.drawImage(L, 0, 0, R.W, R.H);
   }
@@ -894,7 +968,7 @@ G.render = (() => {
       const s = toScreen(e.x, e.y);
       if (s.x < -40 || s.x > R.W + 40 || s.y < -60 || s.y > R.H + 60) continue;
       const size = (e.def && e.def.size) || 1;
-      const h = e.kind === 'structure' ? 100 : 54 * size;
+      const h = e.kind === 'structure' ? 100 : unitHeight(e) + 2;
       const w = e.kind === 'structure' ? 70 : e.def && e.def.boss ? 56 : e.kind === 'hero' ? 40 : 30;
       const x = s.x - w / 2, y = s.y - h * z - 8;
       ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(x - 1, y - 1, w + 2, e.kind === 'hero' ? 9 : 6);
@@ -937,11 +1011,23 @@ G.render = (() => {
       ctx.font = `bold ${t.size}px system-ui, sans-serif`;
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
       const y = s.y - 52 * z - p * 34;
-      ctx.strokeText(t.str, s.x, y); ctx.fillStyle = t.color; ctx.fillText(t.str, s.x, y);
+      if (t.coin) {
+        // number + a small drawn gold coin, centred together
+        const tw = ctx.measureText(t.str).width, r = t.size * 0.36, gap = 3;
+        const x0 = s.x - (tw + gap + r * 2) / 2;
+        ctx.textAlign = 'left';
+        ctx.strokeText(t.str, x0, y); ctx.fillStyle = t.color; ctx.fillText(t.str, x0, y);
+        const cx = x0 + tw + gap + r, cy = y - t.size * 0.34;
+        ctx.beginPath(); ctx.arc(cx, cy, r + 1, 0, Math.PI * 2); ctx.fillStyle = 'rgba(40,25,5,0.9)'; ctx.fill();
+        const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, 0, cx, cy, r);
+        g.addColorStop(0, '#fff3b0'); g.addColorStop(0.45, '#f2c443'); g.addColorStop(1, '#a8781a');
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+        ctx.textAlign = 'center';
+      } else { ctx.strokeText(t.str, s.x, y); ctx.fillStyle = t.color; ctx.fillText(t.str, s.x, y); }
     }
     ctx.globalAlpha = 1;
     // exit signposts: shown when a hero is close or the mouse is over the exit
-    for (const ex of G.world.zone.exits) {
+    for (const ex of G.exitsOf(G.world.zone)) {
       const near = G.world.heroes().some((h) => !h.dead && G.util.dist2(h.x, h.y, ex.x, ex.y) < 6);
       const hov = G.util.dist2(inp.mouseWorld.x, inp.mouseWorld.y, ex.x, ex.y) < ex.r + 1;
       if (!near && !hov) continue;
@@ -949,7 +1035,7 @@ G.render = (() => {
       if (s.x < -100 || s.x > R.W + 100 || s.y < -40 || s.y > R.H + 40) continue;
       const locked = ex.flag && !G.state.flags[ex.flag];
       const wz = G.zoneWarn(ex.to);
-      const line1 = `To ${ex.label}`;
+      const line1 = ex.style === 'down' ? `Down to ${ex.label}` : ex.style === 'up' ? `Up to ${ex.label}` : ex.style === 'sinkhole' ? 'Down into the Underhollow' : `To ${ex.label}`;
       const line2 = locked ? 'Sealed' : wz ? wz.text : 'Safe';
       const col2 = locked ? '#ff8a6a' : wz ? wz.color : '#cfe8b0';
       ctx.font = '13px Georgia, serif';
@@ -962,7 +1048,7 @@ G.render = (() => {
       ctx.font = '12px Georgia, serif'; ctx.fillStyle = col2; ctx.fillText(line2, s.x, y + 30);
     }
     // hover name
-    if (inp.hover && !inp.hover.dead && inp.hover.kind !== 'hero') {
+    if (inp.hover && !inp.hover.dead && inp.hover.kind !== 'hero' && inp.hover.team !== 'enemy' && inp.hover.kind !== 'summon' && inp.hover.kind !== 'structure') {
       const e = inp.hover;
       const s = toScreen(e.x, e.y);
       const danger = e.team === 'enemy' && e.level ? G.dangerOf(e.level, G.partyLevel()) : null;
@@ -1006,7 +1092,7 @@ G.render = (() => {
     const { sx, sy } = R.miniScale;
     const kx = lw / R.mini.width, ky = lh / R.mini.height;
     const pt = (wx, wy) => { const [ix, iy] = iso(wx, wy); return [(R.ox + ix) * sx * kx, iy * sy * ky]; };
-    for (const ex of G.world.zone.exits) { const [px, py] = pt(ex.x, ex.y); x.fillStyle = ex.flag && !G.state.flags[ex.flag] ? '#ff6a3a' : '#ffe08a'; x.fillRect(px - 3, py - 3, 6, 6); }
+    for (const ex of G.exitsOf(G.world.zone)) { const [px, py] = pt(ex.x, ex.y); x.fillStyle = ex.flag && !G.state.flags[ex.flag] ? '#ff6a3a' : '#ffe08a'; x.fillRect(px - 3, py - 3, 6, 6); }
     const dot = (px, py, r, fill) => {
       x.beginPath(); x.arc(px, py, r, 0, Math.PI * 2);
       x.fillStyle = fill; x.fill();

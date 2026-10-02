@@ -20,7 +20,7 @@ G.input = (() => {
     if (!I.selIds.includes(I.activeId)) I.activeId = I.selIds[0];
     I.selected = I.selIds.map(heroEnt).filter(Boolean);
   }
-  I.onZoneLoaded = () => { I.targeting = null; I.aMove = false; I.hover = null; refreshSelection(); };
+  I.onZoneLoaded = () => { I.targeting = null; I.aMove = false; I.hover = null; I.focus = null; refreshSelection(); };
   I.select = (ids, active) => { I.selIds = ids.slice(); I.activeId = active || ids[0]; refreshSelection(); G.ui.refreshAll(); G.audio.play('click', 0.3); };
   I.selectAll = () => I.select(G.state.party.map((h) => h.id), I.activeId);
   I.cycleActive = () => {
@@ -176,6 +176,11 @@ G.input = (() => {
       } else I.select([t.heroId]);
       return;
     }
+    if (t && (t.team === 'enemy' || t.kind === 'summon' || t.kind === 'structure')) {
+      // inspecting a unit doesn't change your selection or orders
+      I.focus = t; G.ui.dirty = true; G.audio.play('click', 0.3);
+      return;
+    }
     if (t && (t.kind === 'npc' || t.kind === 'object' || t.kind === 'loot')) {
       const h = I.activeHero(); if (h && !h.dead) interactOrder(h, t);
     }
@@ -197,6 +202,7 @@ G.input = (() => {
     if (k === 'Escape') {
       if (I.targeting || I.aMove) { I.targeting = null; I.aMove = false; return; }
       if (G.ui.closeTop()) return;
+      if (I.focus) { I.focus = null; G.ui.dirty = true; return; }
       G.ui.openMenu(); return;
     }
     if (G.ui.modal()) {

@@ -3,6 +3,7 @@ G.ui = (() => {
   const $ = (s) => document.querySelector(s);
   const esc = G.util.esc;
   const UI = { dirty: true };
+  const COIN = '<i class="coin" title="gold"></i>';
   const stack = []; // open modal panels
   let tick = 0, lastActive = null, partyKey = '', abilKey = '', invKey = '';
 
@@ -17,8 +18,10 @@ G.ui = (() => {
     if (html) e.innerHTML = html;
     return e;
   }
-  const itemIcon = (id) => { const it = G.ITEMS[id]; return G.sprites.icon(it.icon, it.color, 48); };
-  const abIcon = (id) => { const a = G.ABILITIES[id]; return G.sprites.icon(a.icon, a.color, 56); };
+  // icons are drawn at about twice their largest on-screen size so they stay sharp
+  const ICON_RES = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
+  const itemIcon = (id) => { const it = G.ITEMS[id]; return G.sprites.icon(it.icon, it.color, 64 * ICON_RES); };
+  const abIcon = (id) => { const a = G.ABILITIES[id]; return G.sprites.icon(a.icon, a.color, 72 * ICON_RES); };
   const heroName = (id) => G.HEROES[id].name.split(' ')[0];
 
   /* ---------- init ---------- */
@@ -402,17 +405,52 @@ G.ui = (() => {
     $('#gold').textContent = G.state.gold;
     $('#clock').textContent = G.util.fmtTime(G.state.playTime);
     G.render.drawMinimap($('#minimap'));
-    updateBoss();
+    updateTarget();
   }
   function refreshAll() { if (!G.state || !G.state.party.length) return; partyKey = ''; abilKey = ''; invKey = ''; UI.dirty = true; refreshQuests(); updateParty(); updateUnit(); updateInv(); rebuildOpen(); }
 
-  function updateBoss() {
+  /* Target frame: the unit you left-clicked; if none, a boss that's in a fight. */
+  let tgKey = '';
+  function updateTarget() {
+    const I = G.input;
+    if (I.focus && (I.focus.dead || I.focus.removed || !G.world.entities.includes(I.focus))) I.focus = null;
     const boss = G.world.entities.find((e) => e.def && e.def.boss && !e.dead && e.team === 'enemy' && (e.target || e.hp < e.maxHp) && !e.returning);
-    const bb = $('#bossbar');
-    if (!boss) { bb.classList.add('hidden'); return; }
-    bb.classList.remove('hidden');
-    bb.querySelector('.bb-name').textContent = `${boss.name}  —  ${Math.ceil(boss.hp)} / ${boss.maxHp}`;
-    bb.querySelector('.bb-fill').style.width = (100 * boss.hp / boss.maxHp) + '%';
+    const e = I.focus || boss;
+    const box = $('#target');
+    if (!e) { box.classList.add('hidden'); layoutTop(); return; }
+    box.classList.remove('hidden');
+    const friendly = e.team === 'player';
+    box.classList.toggle('friendly', friendly);
+    box.classList.toggle('boss', !!(e.def && e.def.boss));
+    const key = e.id;
+    if (key !== tgKey) {
+      tgKey = key;
+      box.querySelector('.tg-portrait').src = e.defId ? G.sprites.unitPortrait(e.defId) : '';
+      box.querySelector('.tg-name').textContent = e.name;
+    }
+    let lvl = '', col = '#f2e2b8';
+    if (e.kind === 'structure') lvl = 'Structure';
+    else if (friendly) lvl = e.ttl > 0 ? `Summoned \u00b7 ${Math.ceil(e.ttl)}s left` : 'Summoned';
+    else { const d = G.dangerOf(e.level, G.partyLevel()); lvl = `Level ${e.level} \u00b7 ${d.tag}`; col = d.color; }
+    const lv = box.querySelector('.tg-lvl'); lv.textContent = lvl; lv.style.color = col;
+    box.querySelector('.tg-fill').style.width = (100 * Math.max(0, e.hp) / e.maxHp) + '%';
+    box.querySelector('.tg-hp').textContent = `${Math.max(0, Math.ceil(e.hp))} / ${e.maxHp}${e.returning ? '  (retreating)' : ''}`;
+    const buffs = (e.buffs || []).filter((b) => b.name && b.t < 9000).map((b) => `<span class="buff ${b.good ? 'good' : 'bad'}" style="border-color:${b.color || '#888'}">${esc(b.name)} ${Math.ceil(b.t)}s</span>`).join('')
+      + (e.buffs || []).filter((b) => b.name && b.t >= 9000).map((b) => `<span class="buff bad" style="border-color:${b.color || '#888'}">${esc(b.name)}</span>`).join('');
+    const bf = box.querySelector('.tg-buffs');
+    if (bf.dataset.k !== buffs) { bf.innerHTML = buffs; bf.dataset.k = buffs; }
+    layoutTop();
+  }
+  // Stack the target frame, the event bar and the toasts down from the top bar.
+  function layoutTop() {
+    let y = 48;
+    for (const id of ['#target', '#eventbar']) {
+      const el = $(id);
+      if (!el || el.classList.contains('hidden')) continue;
+      el.style.top = y + 'px';
+      y += el.offsetHeight + 6;
+    }
+    $('#toasts').style.top = (y + 4) + 'px';
   }
 
   function setEvent(a) {
@@ -446,7 +484,7 @@ G.ui = (() => {
     let html = '';
     const type = t.dataset.tip;
     if (type === 'ability') html = abilityTip(t.dataset.ab);
-    else if (type === 'item') html = itemTip(t.dataset.item, t.dataset.price);
+    else if (type === 'item') html = itemTip(t.dataset.item, t.dataset.price, t.dataset.tome);
     else if (type === 'hero') { const hs = G.state.party.find((x) => x.id === t.dataset.hero); const d = G.HEROES[hs.id]; html = `<b>${esc(d.name)}</b><div class="tt-sub">Level ${hs.level} ${esc(d.title)} · ${esc(d.role)}</div>${spTip(hs)}<div class="tt-hint">Click to select, Shift-click to add, double-click to find.</div>`; }
     else if (type === 'stat') html = statTip(t.dataset.stat);
     else html = esc(t.dataset.tipText || '');
@@ -487,12 +525,12 @@ G.ui = (() => {
     }
     return s;
   }
-  function itemTip(id, price) {
+  function itemTip(id, price, tome) {
     const it = G.ITEMS[id];
     const kind = { consumable: 'Consumable — click or press its number to use', equip: 'Equipment — works while carried', tome: 'Tome — use to read; the bonus is permanent' }[it.kind];
     let s = `<b class="${it.unique ? 'tt-unique' : ''}">${esc(it.name)}</b><div class="tt-sub">${kind}</div><p>${esc(it.desc)}</p>`;
-    if (price) s += `<div class="tt-cost">${price}</div>`;
-    else if (findModal('shop')) s += `<div class="tt-cost">Sells for ${G.sellPrice(id)}g</div>`;
+    if (price) s += `<div class="tt-cost">${price}${COIN}${tome ? ' \u2014 tomes cost more each time you buy one' : ''}</div>`;
+    else if (findModal('shop')) s += `<div class="tt-cost">Sells for ${G.sellPrice(id)}${COIN}</div>`;
     return s;
   }
   function statTip(k) {
@@ -593,7 +631,7 @@ G.ui = (() => {
     const shop = G.SHOPS[shopId];
     let buyer = G.input.activeId;
     openModal('shop', (p, m) => {
-      header(p, esc(shop.name), `${esc(G.NPCS[npcId].name)} · You have <b class="gold">${G.state.gold}g</b>`);
+      header(p, esc(shop.name), `${esc(G.NPCS[npcId].name)} · You have <b class="gold">${G.state.gold}</b>${COIN}`);
       p.appendChild(h('div', { class: 'buy-for' }, 'Buying for:'));
       heroTabs(p, buyer, (id) => { buyer = id; m.rebuild(); });
       const hs = G.state.party.find((x) => x.id === buyer);
@@ -603,8 +641,8 @@ G.ui = (() => {
         const it = G.ITEMS[entry.id];
         const locked = entry.unlock && !entry.unlock(G.state);
         const price = G.itemPrice(entry.id);
-        const row = h('div', { class: 'shop-item' + (locked ? ' locked' : '') + (G.state.gold < price ? ' poor' : ''), 'data-tip': 'item', 'data-item': entry.id, 'data-price': `${price}g${it.kind === 'tome' ? ' — tomes cost more each time you buy one' : ''}` });
-        row.innerHTML = `<img src="${itemIcon(entry.id)}" alt=""><div class="si-info"><b>${esc(it.name)}</b><span>${locked ? esc(entry.hint || 'Not yet available') : esc(it.desc)}</span></div><div class="si-price">${price}g</div>`;
+        const row = h('div', { class: 'shop-item' + (locked ? ' locked' : '') + (G.state.gold < price ? ' poor' : ''), 'data-tip': 'item', 'data-item': entry.id, 'data-price': price, 'data-tome': it.kind === 'tome' ? '1' : '' });
+        row.innerHTML = `<img src="${itemIcon(entry.id)}" alt=""><div class="si-info"><b>${esc(it.name)}</b><span>${locked ? esc(entry.hint || 'Not yet available') : esc(it.desc)}</span></div><div class="si-price">${price}${COIN}</div>`;
         if (!locked) row.addEventListener('click', () => { buy(entry.id, hs); m.rebuild(); });
         list.appendChild(row);
       }
@@ -613,7 +651,7 @@ G.ui = (() => {
       sell.appendChild(h('div', { class: 'pack-title' }, `Sell from ${esc(heroName(hs.id))}’s bag or the pack (half price)`));
       const sg = h('div', { class: 'slots sellgrid' });
       const items = [...hs.items.map((it, i) => ({ it, loc: `h:${hs.id}:${i}` })), ...G.state.pack.map((it, i) => ({ it, loc: `p:${i}` }))].filter((x) => x.it);
-      sg.innerHTML = items.length ? items.map(({ it, loc }) => `<div class="slot ${G.ITEMS[it.id].kind}" data-loc="${loc}" data-tip="item" data-item="${it.id}"><img src="${itemIcon(it.id)}" alt="">${it.n > 1 ? `<span class="n">${it.n}</span>` : ''}<span class="sp">${G.sellPrice(it.id)}g</span></div>`).join('') : '<p class="dim">Nothing to sell.</p>';
+      sg.innerHTML = items.length ? items.map(({ it, loc }) => `<div class="slot ${G.ITEMS[it.id].kind}" data-loc="${loc}" data-tip="item" data-item="${it.id}"><img src="${itemIcon(it.id)}" alt="">${it.n > 1 ? `<span class="n">${it.n}</span>` : ''}<span class="sp">${G.sellPrice(it.id)}${COIN}</span></div>`).join('') : '<p class="dim">Nothing to sell.</p>';
       sg.querySelectorAll('.slot').forEach((s) => s.addEventListener('click', () => { sellItem(s.dataset.loc); m.rebuild(); }));
       sell.appendChild(sg);
       cols.appendChild(sell);
@@ -699,6 +737,7 @@ G.ui = (() => {
       const list = h('div', { class: 'ws-list' });
       for (const id in G.WAYSTONES) {
         if (id === wsId) continue;
+        if (G.WAYSTONES[id].feature && !G.FEATURES[G.WAYSTONES[id].feature]) continue;
         const known = G.state.waystones[id];
         const wz = G.zoneWarn(G.WAYSTONES[id].zone);
         const b = h('button', { class: 'btn ws-btn' }, known ? `${esc(G.WAYSTONES[id].name)}${wz ? ` <span class="ws-rec" style="color:${wz.color}">${esc(wz.text)}</span>` : ' <span class="ws-rec dim">Safe</span>'}` : '<span class="dim">Not yet attuned</span>');
@@ -771,6 +810,7 @@ G.ui = (() => {
         <div><h4>Mouse</h4><ul>
           <li><b>Right-click</b> ground to move, an enemy to attack, a person or object to talk/use.</li>
           <li><b>Left-click</b> a hero or portrait to select. Drag a box to select several. Shift-click adds.</li>
+          <li><b>Left-click</b> an enemy to show its health and level at the top of the screen.</li>
           <li><b>Wheel</b> zooms. <b>Middle-drag</b> or the minimap pans. Right-click the minimap to move there.</li></ul></div>
         <div><h4>Keyboard</h4><ul>
           <li><b>Q W E R</b> cast abilities. <b>Shift+Q/W/E/R</b> learns or ranks them up.</li>
@@ -808,7 +848,9 @@ G.ui = (() => {
       p.appendChild(h('div', { class: 'act-sub' }, 'The Ember Road'));
       p.appendChild(h('p', {}, 'The Cinder Warden is ash and Hollowmere sleeps easy for a night. But the Kindler has fled up the mountain, and the Ember Cult is not finished.'));
       p.appendChild(h('div', { class: 'act-stats' }, `<div><b>${G.util.fmtTime(G.state.playTime)}</b><span>time played</span></div><div><b>${G.partyLevel()}</b><span>party level</span></div><div><b>${G.state.kills}</b><span>foes defeated</span></div><div><b>${Object.values(G.state.quests).filter((q) => q.s === 'done').length}</b><span>quests completed</span></div>`));
-      p.appendChild(h('p', { class: 'dim' }, 'Act II is still being written. You can keep exploring, finish side quests and hunt the optional bosses. Your save is ready for the next act.'));
+      p.appendChild(h('p', { class: 'dim' }, G.FEATURES.underhollow
+        ? 'Act II is still being written. Until then, Elder Odrin has heard something stirring beneath Hollowmere. Talk to him when you\u2019re ready to go deeper. Your save is ready for the next act.'
+        : 'Act II is still being written. You can keep exploring, finish side quests and hunt the optional bosses. Your save is ready for the next act.'));
       const r = h('div', { class: 'row center' });
       r.appendChild(h('button', { class: 'btn', onclick: () => G.save.exportJson() }, 'Export save'));
       r.appendChild(h('button', { class: 'btn primary', onclick: () => closeKind('act') }, 'Keep playing'));

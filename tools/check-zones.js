@@ -3,13 +3,14 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ctx = { window: {}, console };
 ctx.window = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js', 'js/data/zones.js', 'js/core/worldgen.js'])
+for (const f of ['js/core/util.js', 'js/data/heroes.js', 'js/data/abilities.js', 'js/data/items.js', 'js/data/units.js', 'js/data/zones.js', 'js/data/quests.js', 'js/data/underhollow.js', 'js/core/worldgen.js'])
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
 const G = ctx.G;
 let bad = 0;
 for (const id in G.ZONES) {
   const Z = G.ZONES[id];
-  const grid = G.genZone(id, { barrowsOpen: true, sealsBroken: true });
+  const flags = { barrowsOpen: true, sealsBroken: true, underhollowOpen: true };
+  const grid = G.genZone(id, flags);
   const e0 = Object.values(Z.entries)[0];
   const seen = G.reachable(grid, e0[0], e0[1]);
   const ok = (x, y, rad = 1.6) => {

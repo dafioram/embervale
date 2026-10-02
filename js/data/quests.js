@@ -176,6 +176,7 @@ G.quests = (() => {
     if (q) return q.s; // 'active' | 'ready' | 'done'
     const d = def(id);
     if (!d.giver) return 'locked';
+    if (d.feature && !G.FEATURES[d.feature]) return 'locked';
     const req = d.req || {};
     if (req.quests && !req.quests.every((r) => st()[r] && st()[r].s === 'done')) return 'locked';
     if (req.level && G.partyLevel() < req.level) return 'locked';
@@ -344,6 +345,7 @@ G.questTargets = () => {
     if (q.s !== 'active' || !d.markers) continue;
     for (const m of d.markers) {
       if (m.obj && G.state.objects[m.zone] && G.state.objects[m.zone][m.obj] != null) continue;
+      if (m.objective != null && q.p[m.objective] >= d.objectives[m.objective].count) continue;
       if (m.flag && !G.state.flags[m.flag]) continue;
       if (m.zone === here) out.push(m);
       else { const ex = route(m.zone); if (ex && !out.includes(ex)) out.push(ex); }

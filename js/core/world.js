@@ -38,8 +38,8 @@ G.world = (() => {
     const ov = opts.override || {};
     const e = {
       id: U.uid(), kind: d.structure ? 'structure' : d.summon ? 'summon' : 'enemy', team: opts.team || 'enemy',
-      defId, def: d, name: d.name, x, y, r: d.r, level: d.level,
-      maxHp: ov.hp || d.hp, dmg: ov.dmg || d.dmg, armor: d.armor, atkCd: d.atkCd, range: d.range, speed: d.speed,
+      defId, def: d, name: d.name, x, y, r: d.r, level: ov.level || d.level,
+      maxHp: ov.hp || d.hp, dmg: ov.dmg || d.dmg, armor: d.armor + (ov.armor || 0), xpMul: ov.reward || 1, goldMul: ov.reward || 1, atkCd: d.atkCd, range: d.range, speed: d.speed,
       buffs: [], cd: {}, atkTimer: Math.random() * 0.5, facing: Math.random() * Math.PI * 2, anim: Math.random() * 5,
       home: { x, y }, order: null, mods: {}, owner: opts.owner || null, ttl: opts.ttl || 0,
     };
@@ -139,7 +139,14 @@ G.world = (() => {
       c.units.forEach((u, i) => {
         const a = (i / n) * Math.PI * 2 + 0.6;
         const rad = n === 1 ? 0 : 1.1;
-        const e = spawn(u, c.x + Math.cos(a) * rad, c.y + Math.sin(a) * rad, { team: 'enemy' });
+        let override;
+        if (c.scale) {
+          // Underhollow camps: raise the unit to the floor's level
+          const m = G.deepScale(u, c.scale), d = G.UNITS[u];
+          if (m > 1) override = { level: Math.max(d.level, c.scale), hp: Math.round(d.hp * m), dmg: Math.round(d.dmg * m), armor: Math.round((c.scale - d.level) * 0.3), reward: m };
+        }
+        const e = spawn(u, c.x + Math.cos(a) * rad, c.y + Math.sin(a) * rad, { team: 'enemy', override });
+        if (c.guardian && i === 0) { e.name = 'Guardian ' + e.name; e.guardian = true; }
         e.campId = c.id;
         if (c.leash) e.leash = c.leash;
         if (c.unique && u === c.unique) e.unique = c.unique;
@@ -174,7 +181,16 @@ G.world = (() => {
   function onEnemyDeath(e) {
     if (!e.campId || W.campAlive[e.campId] == null) return;
     W.campAlive[e.campId]--;
-    if (W.campAlive[e.campId] <= 0) zoneCampState()[e.campId] = G.state.playTime;
+    if (W.campAlive[e.campId] <= 0) {
+      zoneCampState()[e.campId] = G.state.playTime;
+      const c = W.zone.camps.find((x) => x.id === e.campId);
+      if (c && c.opens && !G.state.flags[c.opens]) {
+        G.state.flags[c.opens] = true;
+        G.ui.toast('The way down opens.', 'quest');
+        G.audio.play('shatter'); G.fx.shake(0.4, 5);
+        G.save.auto();
+      }
+    }
   }
   const campCleared = (id) => !(W.campAlive[id] > 0);
 
@@ -258,7 +274,7 @@ G.world = (() => {
         if (os[o.id] != null) { G.ui.toast('Empty.'); break; }
         if (o.requiresCamp && !campCleared(o.requiresCamp)) { G.ui.toast('Something is guarding this chest.', 'bad'); break; }
         os[o.id] = G.state.playTime;
-        if (o.gold) { G.game.addGold(o.gold); G.fx.text(t.x, t.y, '+' + o.gold + 'g', '#ffd54a', 15); }
+        if (o.gold) { G.game.addGold(o.gold); G.fx.text(t.x, t.y, '+' + o.gold, '#ffd54a', 15, 0, { coin: true }); }
         if (o.item) dropLoot(o.item, t.x + 0.6, t.y + 0.6);
         G.fx.burst(t.x, t.y, '#ffd54a', 20, 2.5);
         G.audio.play('open');
@@ -348,7 +364,7 @@ G.world = (() => {
   function checkExits(dt) {
     if (W.transitioning) return;
     W.lockedMsgT -= dt;
-    for (const x of W.zone.exits) {
+    for (const x of G.exitsOf(W.zone)) {
       for (const h of heroes()) {
         if (h.dead) continue;
         const d = U.dist2(h.x, h.y, x.x, x.y);

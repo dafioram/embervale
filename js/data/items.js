@@ -89,7 +89,8 @@ G.LOOT = {
 };
 
 G.rollLoot = (zoneId) => {
-  const t = G.LOOT[zoneId];
+  const Z = G.ZONES[zoneId];
+  const t = G.LOOT[(Z && Z.loot) || zoneId];
   if (!t) return null;
   const total = t.reduce((s, [, w]) => s + w, 0);
   let r = Math.random() * total;

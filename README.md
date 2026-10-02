@@ -33,7 +33,18 @@ The empty `.nojekyll` file tells Pages to serve the files as they are.
 | **Quests** | 5 main story quests and 6 side quests. |
 | **Bosses** | Greymane the Old Alpha, Grell Thornjaw, the Bogmother (optional) and the Cinder Warden. |
 | **Set piece** | A three-wave defense of the mill in Brindle Fields. |
-| **Economy** | Three shops in town plus a peddler you can rescue. Tomes raise attributes permanently and cost a little more each time you buy one. |
+| **Economy** | Three shops in town plus a peddler you can rescue. Tomes raise attributes permanently and cost a little more each time you buy one. Gold is shown with a small coin icon. |
+
+### Post-game: the Underhollow
+
+After you finish Act I, Elder Odrin offers **Trouble Below**. A sinkhole opens in the road by the forge in Hollowmere, leading down into the Underhollow, a ten-floor dungeon (roughly 1–2 hours).
+
+- **Floors** are generated cave levels with 3–6 enemy camps each. A guardian camp seals the stairs down; defeat it to open the way. Opened stairs stay open.
+- **Difficulty** rises one enemy level per floor (level 10 on floor 1 to level 19 on floor 10), with health and damage up about 9% per level. Past floor 6 the enemies out-level a capped party, so tomes and gear matter.
+- **Bosses:** the Brood Mother on floor 5 and the Hollow King on floor 10.
+- **Checkpoints:** waystones on floors 1, 4 and 7. A party wipe still sends you to town; use a waystone to return to your deepest checkpoint.
+- **Rewards:** experience and gold scale with depth, a deep loot table with new gear, and a unique drop from each boss.
+- **Switching it off:** set `G.FEATURES.underhollow = false` at the top of `js/data/underhollow.js`. The quest, the sinkhole and the dungeon waystones disappear; saves stay compatible.
 
 ### How the rules work
 
@@ -51,6 +62,7 @@ The empty `.nojekyll` file tells Pages to serve the files as they are.
 |---|---|
 | Right-click | Move. On an enemy: attack. On a person, object or item: talk, use or pick up. |
 | Left-click / drag | Select heroes. Shift-click adds a hero to the selection. |
+| Left-click an enemy | Show it in the target frame at the top of the screen (name, level, health, effects). It stays until the enemy dies, you click another unit, or press Esc. Bosses appear there automatically during a fight. |
 | Q W E R | Cast abilities. Targeted abilities show a preview; left-click to confirm and right-click to cancel. |
 | T | Attribute Training (passive). |
 | Shift + Q/W/E/R/T | Learn or rank up an ability (or click the **+** on its button). A gold **+** on a portrait means a point you can spend now; a dim number means a point saved for a later level. |
@@ -65,7 +77,7 @@ The empty `.nojekyll` file tells Pages to serve the files as they are.
 | Mouse wheel | Zoom. |
 | I / C / L | Inventory / hero sheet / quest log. |
 | P | Pause. |
-| Esc | Cancel targeting, close a panel, or open the menu. |
+| Esc | Cancel targeting, close a panel, clear the target frame, or open the menu. |
 
 In the inventory you can drag items between heroes and the shared pack. Left-click an item to use it; right-click to move it to the pack.
 
@@ -106,6 +118,7 @@ js/data/              game content (pure data plus a few small hooks)
   units.js            enemies, summons, structures, boss special moves
   zones.js            zone layouts: features, exits, NPCs, objects, camps
   quests.js           NPCs, dialogue, quests and the quest engine
+  underhollow.js      the post-game dungeon: floor generator, enemies, bosses, loot, quest
 js/core/worldgen.js   turns a zone definition into tiles, blockers and props
 js/core/world.js      the live zone: entities, spawning, objects, loot, exits
 js/core/ai.js         orders, movement, attacking, casting and creep AI
