@@ -711,8 +711,9 @@ G.sprites = (() => {
   }
   function unitPortrait(defId) {
     const d = G.UNITS[defId];
-    const f = { humanoid: [2.7, -25], golem: [1.9, -20], blob: [2.4, -10], wolf: [2.2, -10], boar: [2.2, -9], spider: [2.4, -8], wisp: [2.4, -16], imp: [3, -14], stalker: [2.2, -18], ward: [2.4, -14] }[d.shape] || [2.4, -12];
-    return portrait('unit-' + defId, (x, k) => unit(x, k, { kind: 'enemy', def: d }, { t: 0 }), 64, f[0], f[1]);
+    const f = { humanoid: [2.5, -29], golem: [1.7, -24], blob: [2.4, -11], wolf: [2.2, -11], boar: [2.2, -10], spider: [2.0, -11], wisp: [2.4, -16], imp: [3, -14], stalker: [2.2, -18], ward: [2.4, -14] }[d.shape] || [2.4, -12];
+    const fake = { id: 1, kind: 'enemy', defId, def: d, buffs: [] };
+    return portrait('unit-' + defId, (x, k) => (G.art ? G.art.drawDirect(x, fake, k) : unit(x, k, fake, { t: 0 })), 64, f[0], f[1]);
   }
 
   return { shade, rgba, ellipse, rrect, unit, humanoid, treeSprite, boulderSprite, icon, heroPortrait, npcPortrait, unitPortrait };

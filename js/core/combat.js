@@ -92,6 +92,7 @@ G.combat = (() => {
     e.hp = 0; e.dead = true; e.deathT = 0;
     e.buffs = []; e.order = null; e.target = null; e.path = null; e.channel = null;
     for (const o of G.world.entities) if (o.target === e) o.target = null;
+    if (G.art) G.art.onDeath(e);
 
     if (e.kind === 'hero') {
       e.hs.dead = true;

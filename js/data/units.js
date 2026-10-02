@@ -113,7 +113,7 @@ G.ENEMY_SKILLS = {
     const x = t.x, y = t.y;
     G.fx.telegraph({ x, y, r: 1.6, delay: 1.2, color: '#ff7a2a', onDone: () => {
       for (const h of G.combat.hostilesNear(x, y, 1.6, e.team)) G.combat.dealDamage(e, h, 85, { spell: true });
-      G.fx.burst(x, y, '#ffae5a', 24, 4); G.audio.play('boom');
+      G.fx.burst(x, y, '#ffae5a', 24, 4); G.fx.flash(x, y, '#ff8a2a', 1.4, 0.3, 6); G.fx.mark(x, y, 'scorch', 1.5); G.audio.play('boom');
     } });
     return true;
   },
@@ -123,7 +123,7 @@ G.ENEMY_SKILLS = {
     G.fx.telegraph({ x: e.x, y: e.y, r: 2.3, delay: 1.0, follow: e, color: '#ff5a1a', onDone: () => {
       if (e.dead) return;
       for (const h of G.combat.hostilesNear(e.x, e.y, 2.3, e.team)) { G.combat.dealDamage(e, h, 115, { spell: true }); G.combat.stun(h, 1); }
-      G.fx.burst(e.x, e.y, '#c88a5a', 26, 5); G.fx.shake(0.25, 4); G.audio.play('quake');
+      G.fx.burst(e.x, e.y, '#c88a5a', 26, 5); G.fx.mark(e.x, e.y, 'crater', 2); G.fx.shake(0.25, 4); G.audio.play('quake');
     } });
     return true;
   },
@@ -140,7 +140,7 @@ G.ENEMY_SKILLS = {
           G.combat.dealDamage(e, t, 105, { spell: true });
           G.combat.buff(t, { id: 'mired', name: 'Mired', t: 3, mods: { moveMul: -0.45 }, color: '#7bd13a' });
         }
-        G.fx.burst(x, y, '#9be35a', 20, 3); G.audio.play('splash');
+        G.fx.burst(x, y, '#9be35a', 20, 3); G.fx.mark(x, y, 'ichor', 1.4, '#6a8a2a'); G.audio.play('splash');
       } });
     }
     return true;
@@ -164,7 +164,7 @@ G.ENEMY_SKILLS = {
           hitOnce.add(t);
           G.combat.dealDamage(e, t, 140, { spell: true });
         }
-        G.fx.burst(x, y, '#ffb04a', 28, 5); G.audio.play('boom');
+        G.fx.burst(x, y, '#ffb04a', 28, 5); G.fx.flash(x, y, '#ff8a2a', 1.6, 0.3, 6); G.fx.mark(x, y, 'scorch', 1.8); G.audio.play('boom');
       } });
     }
     return true;
@@ -175,7 +175,7 @@ G.ENEMY_SKILLS = {
     G.fx.telegraph({ x: e.x, y: e.y, r: 5, delay: 1.9, follow: e, color: '#ff3a00', onDone: () => {
       if (e.dead) return;
       for (const t of G.combat.hostilesNear(e.x, e.y, 5, e.team)) G.combat.dealDamage(e, t, 200, { spell: true });
-      G.fx.ring(e.x, e.y, 5, '#ffcf6a', 0.6, true); G.fx.burst(e.x, e.y, '#ff8a2a', 60, 7); G.fx.shake(0.5, 8); G.audio.play('quake');
+      G.fx.ring(e.x, e.y, 5, '#ffcf6a', 0.6, true); G.fx.burst(e.x, e.y, '#ff8a2a', 60, 7); G.fx.flash(e.x, e.y, '#ff8a2a', 4, 0.45, 8); G.fx.mark(e.x, e.y, 'scorch', 4.2); G.fx.shake(0.5, 8); G.audio.play('quake');
     } });
     return true;
   },

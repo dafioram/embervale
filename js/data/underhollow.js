@@ -62,7 +62,7 @@ function deepCircles(e, r, delay, dmg, color, onHit) {
         G.combat.dealDamage(e, t, dmg, { spell: true });
         if (onHit) onHit(t);
       }
-      G.fx.burst(x, y, color, 24, 4); G.audio.play('boom');
+      G.fx.burst(x, y, color, 24, 4); G.fx.flash(x, y, color, r * 0.8, 0.3, 6); G.audio.play('boom');
     } });
   }
   return true;
@@ -93,7 +93,7 @@ Object.assign(G.ENEMY_SKILLS, {
     G.fx.telegraph({ x: e.x, y: e.y, r: 5.2, delay: 2.0, follow: e, color: '#7a4aff', onDone: () => {
       if (e.dead) return;
       for (const t of G.combat.hostilesNear(e.x, e.y, 5.2, e.team)) G.combat.dealDamage(e, t, 420, { spell: true });
-      G.fx.ring(e.x, e.y, 5.2, '#d9c2ff', 0.6, true); G.fx.burst(e.x, e.y, '#a07aff', 60, 7); G.fx.shake(0.5, 8); G.audio.play('quake');
+      G.fx.ring(e.x, e.y, 5.2, '#d9c2ff', 0.6, true); G.fx.burst(e.x, e.y, '#a07aff', 60, 7); G.fx.flash(e.x, e.y, '#a07aff', 4, 0.45, 8); G.fx.mark(e.x, e.y, 'crater', 3.2); G.fx.shake(0.5, 8); G.audio.play('quake');
     } });
     return true;
   },

@@ -73,7 +73,7 @@ G.game = (() => {
     const e = G.input.heroEnt(hs.id);
     if (e) {
       G.world.refreshHero(e);
-      if (!e.dead) { e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.25); G.fx.burst(e.x, e.y, '#ffe9a0', 36, 3, -2.5); G.fx.ring(e.x, e.y, 1.6, '#ffe9a0', 0.8, true); }
+      if (!e.dead) { e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.25); G.fx.burst(e.x, e.y, '#ffe9a0', 36, 3, -2.5); G.fx.ring(e.x, e.y, 1.6, '#ffe9a0', 0.8, true); G.fx.pillar(e.x, e.y, '#ffe9a0', 1.3); }
     }
     G.ui.toast(`${G.HEROES[hs.id].name} reached level ${hs.level}!`, 'level');
     G.audio.play('levelup');

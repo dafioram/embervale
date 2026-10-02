@@ -5,9 +5,18 @@ G.fx = (() => {
   const parts = [];  // particles
   const texts = [];
   const projs = [];
+  const marks = [];  // fading ground marks: blood, ichor, ash, rubble, scorch, crater
   let shakeT = 0, shakeMag = 0;
 
-  function clear() { list.length = 0; parts.length = 0; texts.length = 0; projs.length = 0; }
+  function clear() { list.length = 0; parts.length = 0; texts.length = 0; projs.length = 0; marks.length = 0; }
+  // A mark left on the ground that fades out over about 25 seconds.
+  function mark(x, y, kind, r = 0.6, color) {
+    if (marks.length >= 60) marks.shift();
+    marks.push({ x, y, kind, r, color, t: 0, life: kind === 'scorch' || kind === 'crater' ? 18 : 25, seed: (Math.random() * 1e9) | 0, rot: Math.random() * 6.28 });
+  }
+  // A short flash of light where something hits.
+  const flash = (x, y, color, r = 0.8, dur = 0.22, z = 14) => list.push({ type: 'flash', x, y, z, color, r, t: 0, dur });
+  const pillar = (x, y, color, dur = 1.2) => list.push({ type: 'pillar', x, y, color, t: 0, dur });
 
   const ring = (x, y, r, color, dur = 0.5, fill = false) => list.push({ type: 'ring', x, y, r, color, t: 0, dur, fill });
   const beam = (a, b, color, dur = 0.3) => list.push({ type: 'beam', a, b, color, t: 0, dur });
@@ -19,7 +28,16 @@ G.fx = (() => {
       const j = i === 0 || i === n ? 0 : (Math.random() - 0.5) * 0.7;
       pts.push({ x: a.x + (b.x - a.x) * t + j, y: a.y + (b.y - a.y) * t - j, z: 18 + Math.random() * 6 });
     }
-    list.push({ type: 'bolt', pts, color, t: 0, dur });
+    // a couple of short forks off the main bolt
+    const forks = [];
+    for (let k = 0; k < 2; k++) {
+      const i = 2 + Math.floor(Math.random() * (n - 3)), q = pts[i], f = [q];
+      let x = q.x, y = q.y, z = q.z;
+      const ang = Math.atan2(b.y - a.y, b.x - a.x) + (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 0.6);
+      for (let j = 0; j < 3; j++) { x += Math.cos(ang) * 0.35 + (Math.random() - 0.5) * 0.2; y += Math.sin(ang) * 0.35 + (Math.random() - 0.5) * 0.2; z += (Math.random() - 0.3) * 6; f.push({ x, y, z }); }
+      forks.push(f);
+    }
+    list.push({ type: 'bolt', pts, forks, color, t: 0, dur });
   }
   const streak = (x0, y0, x1, y1, color, dur = 0.3, width = 3) => list.push({ type: 'streak', x0, y0, x1, y1, color, t: 0, dur, width });
   function arrowRain(x, y, r, color) {
@@ -62,6 +80,7 @@ G.fx = (() => {
       if (p.z < 0) { p.z = 0; p.vz *= -0.3; }
       if (p.t >= p.life) parts.splice(i, 1);
     }
+    for (let i = marks.length - 1; i >= 0; i--) { marks[i].t += dt; if (marks[i].t >= marks[i].life) marks.splice(i, 1); }
     for (let i = texts.length - 1; i >= 0; i--) { texts[i].t += dt; if (texts[i].t >= texts[i].dur) texts.splice(i, 1); }
     for (let i = projs.length - 1; i >= 0; i--) {
       const p = projs[i];
@@ -74,6 +93,7 @@ G.fx = (() => {
       if (d <= step + 0.15) {
         projs.splice(i, 1);
         const alive = p.to && p.to.id ? !p.to.dead : true;
+        if (!p.arrow && !p.spin) flash(p.tx, p.ty, p.color, 0.35 + p.size * 0.08, 0.18, p.z);
         if (p.onHit && alive) p.onHit(p.to.id ? p.to : { x: p.tx, y: p.ty });
         continue;
       }
@@ -84,5 +104,5 @@ G.fx = (() => {
 
   const shakeOffset = () => (shakeT > 0 ? [(Math.random() - 0.5) * shakeMag * 2, (Math.random() - 0.5) * shakeMag * 2] : [0, 0]);
 
-  return { list, parts, texts, projs, clear, ring, beam, bolt, streak, arrowRain, telegraph, burst, text, projectile, shake, update, shakeOffset };
+  return { list, parts, texts, projs, marks, mark, flash, pillar, clear, ring, beam, bolt, streak, arrowRain, telegraph, burst, text, projectile, shake, update, shakeOffset };
 })();

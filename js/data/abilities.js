@@ -18,7 +18,7 @@
           G.combat.dealDamage(c, t, V(a.dmg, r), { spell: true });
           G.combat.stun(t, V(a.stun, r));
           G.fx.burst(t.x, t.y, '#ffcf8a', 14, 4);
-          G.fx.ring(t.x, t.y, 1.2, '#ffcf8a', 0.35);
+          G.fx.ring(t.x, t.y, 1.2, '#ffcf8a', 0.35); G.fx.flash(t.x, t.y, '#ffcf8a', 1);
           G.audio.play('thud');
           c.target = t;
         });
@@ -69,7 +69,8 @@
           G.combat.dealDamage(c, e, V(a.dmg, r), { spell: true });
           G.combat.stun(e, V(a.stun, r));
         }
-        G.fx.ring(c.x, c.y, a.radius, '#ffb062', 0.6, true);
+        G.fx.ring(c.x, c.y, a.radius, '#ffb062', 0.6, true); G.fx.flash(c.x, c.y, '#ffb062', a.radius * 0.6, 0.3, 4);
+        G.fx.mark(c.x, c.y, 'crater', Math.min(2.4, a.radius * 0.7));
         G.fx.burst(c.x, c.y, '#c7854a', 40, 6);
         G.fx.shake(0.4, 7);
         G.audio.play('quake');
@@ -85,7 +86,7 @@
       cast(c, t, r, a) {
         G.combat.heal(t, V(a.heal, r), c);
         G.fx.beam(c, t, '#a6ffbf', 0.3);
-        G.fx.burst(t.x, t.y, '#b6ffca', 16, 2, -1.5);
+        G.fx.burst(t.x, t.y, '#b6ffca', 16, 2, -1.5); G.fx.flash(t.x, t.y, '#a6ffbf', 0.9, 0.35, 20);
         G.audio.play('heal');
       },
     },
@@ -99,7 +100,7 @@
         let cur = t, prev = c, dmg = V(a.dmg, r);
         for (let i = 0; i < V(a.jumps, r) && cur; i++) {
           hit.add(cur);
-          G.fx.bolt(prev, cur, '#9fe3ff', 0.3);
+          G.fx.bolt(prev, cur, '#9fe3ff', 0.3); G.fx.flash(cur.x, cur.y, '#9fe3ff', 0.8, 0.2, 18);
           G.combat.dealDamage(c, cur, Math.round(dmg), { spell: true });
           dmg *= 0.85;
           prev = cur;
@@ -141,7 +142,7 @@
             G.fx.burst(e.x, e.y, '#b5fff4', 14, 2, -2);
           }
         }
-        G.fx.ring(c.x, c.y, 6, '#7af0e0', 0.8, true);
+        G.fx.ring(c.x, c.y, 6, '#7af0e0', 0.8, true); G.fx.pillar(c.x, c.y, '#7af0e0', 1.0);
         G.audio.play('tide');
       },
     },
@@ -162,7 +163,7 @@
           const px = c.x + dx * tt, py = c.y + dy * tt;
           if (Math.hypot(e.x - px, e.y - py) <= a.line / 2 + e.r) {
             G.combat.dealDamage(c, e, V(a.dmg, r), { spell: true });
-            G.fx.burst(e.x, e.y, '#ffe39a', 8, 3);
+            G.fx.burst(e.x, e.y, '#ffe39a', 8, 3); G.fx.flash(e.x, e.y, '#ffe39a', 0.6, 0.18, 16);
           }
         }
         G.fx.streak(c.x, c.y, ex, ey, '#ffe39a', 0.35, 4);
@@ -211,7 +212,7 @@
         if (!t.dead) {
           G.combat.buff(t, { id: 'mark', name: 'Marked', t: 8, mods: { dmgTaken: a.amp }, color: '#ff6b6b' });
           G.combat.dealDamage(c, t, V(a.dmg, r), { spell: true });
-          G.fx.burst(t.x, t.y, '#ff9a9a', 24, 4);
+          G.fx.burst(t.x, t.y, '#ff9a9a', 24, 4); G.fx.flash(t.x, t.y, '#ff8f8f', 1, 0.3, 18);
         }
         G.fx.shake(0.2, 4);
         G.audio.play('bigshot');

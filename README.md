@@ -35,6 +35,7 @@ The empty `.nojekyll` file tells Pages to serve the files as they are.
 | **Set piece** | A three-wave defense of the mill in Brindle Fields. |
 | **Economy** | Three shops in town plus a peddler you can rescue. Tomes raise attributes permanently and cost a little more each time you buy one. Gold is shown with a small coin icon. |
 | **Atmosphere** | Each zone has its own weather and light: pollen, butterflies and cloud shadows in the fields; fireflies, falling leaves, light shafts and mist in Whisperwood; rain, mist and midges in Mirefen; braziers, embers and ash in the Barrows; blue crystal lights in the Underhollow. Trees sway in the wind. |
+| **Art** | Flat vector characters with two-tone shading, rim light and thick outlines. Heroes show the weapons, shields, helms and cloaks they have equipped. Enemies come in a few looks per type so packs don't look cloned, and every boss has its own design. Units have idle, walk, attack, cast, hurt and death animations, and burn, poison, chill, webs, mire and Shaken show on the unit. Each kind of enemy dies its own way (cinders, ghosts, splats, rubble), fights leave fading blood, scorch marks and craters on the ground, and each zone is dressed with small props such as bushes, stumps, reeds, barrels, gravestones, bones and crystals. |
 | **Music and sound** | A theme for each zone (Hollowmere, Brindle Fields, Whisperwood, Mirefen, the Ashen Barrows and the Underhollow). Drums and bass fade in when a fight starts, bosses get the Barrows battle theme, and music dips while a dialogue or menu is open. Each zone also has background sound (birds, crickets and an owl, frogs, cave drips, crackling embers). |
 
 ### Post-game: the Underhollow
@@ -132,7 +133,9 @@ js/core/gamepad.js    controller support (Gamepad API)
 js/core/save.js       localStorage slots, JSON export and import, settings
 js/core/audio.js      audio engine: volume buses, reverb, synth instruments, sound effects
 js/core/music.js      zone music (with combat layers) and background ambience
-js/render/sprites.js  procedural art for units, trees and icons
+js/render/sprites.js  procedural art for trees, buildings and icons
+js/render/units.js    unit art: heroes, gear, enemies, bosses, animation frames, status effects, deaths
+js/render/deco.js     small decorative props for each zone
 js/render/render.js   isometric renderer, lighting and minimap (with fog of war)
 js/render/atmos.js    zone atmosphere: particles, weather, wind sway, torches, colour grade
 js/ui/ui.js           HUD, dialogs, shops, inventory, quest log and menus
@@ -147,7 +150,7 @@ The scripts are plain `<script>` tags that share one global namespace, `G`. Ther
 Most content is data, so adding to the game rarely needs engine changes.
 
 - **A new zone:** add an entry to `G.ZONES` in `zones.js`. Give it a size, seed, theme (`village`, `meadow`, `forest`, `swamp` or `cave`), a feature list (paths, water, clearings, buildings, fences, stockades, rooms, tunnels, gates), exits, entries, NPCs, objects and camps. Then link it from another zone's `exits`. Run the layout checker afterwards.
-- **A new enemy:** add it to `G.UNITS` in `units.js`. Pick a `shape` the sprite code knows (`humanoid`, `boar`, `wolf`, `spider`, `blob`, `stalker`, `wisp`, `imp` or `golem`) and colors. For boss mechanics, add a function to `G.ENEMY_SKILLS` and reference it from the unit's `skills` list, either on a cooldown (`cd`) or at a health threshold (`at`).
+- **A new enemy:** add it to `G.UNITS` in `units.js`. Pick a `shape` the art code knows (`humanoid`, `boar`, `wolf`, `spider`, `blob`, `stalker`, `wisp`, `imp`, `golem` or `ward`) and colors. Humanoids can get a custom look (hood, helm, weapon and so on) in the `ENEMY` table in `js/render/units.js`. For boss mechanics, add a function to `G.ENEMY_SKILLS` and reference it from the unit's `skills` list, either on a cooldown (`cd`) or at a health threshold (`at`).
 - **A new quest:** add it to `G.QUESTS` in `quests.js`. Objectives can be `kill`, `collect`, `interact` or `flag`. Use `onAccept` and `onComplete` hooks for story beats, and `markers` to point the minimap at the objective.
 - **Items and shops:** see `G.ITEMS` and `G.SHOPS` in `items.js`.
 
@@ -175,7 +178,7 @@ This generates every zone and confirms that every camp, NPC, object, entry and e
 
 ## Known limitations
 
-- There is no fog of war, and pathfinding is simpler than in a commercial RTS engine. Units can sometimes bunch up in narrow passages.
+- Fog of war covers only the minimap, and pathfinding is simpler than in a commercial RTS engine. Units can sometimes bunch up in narrow passages.
 - Music and sound are synthesized, so they have a light, retro-instrument character. Recorded tracks can replace any theme (see *Using your own music*).
 - The camera, HUD and controls are built for desktop screens. Phones and tablets aren't supported.
 - Act II isn't written yet. The Act I ending leaves a hook (the Kindler escapes up the mountain), and saves are ready to carry forward.
