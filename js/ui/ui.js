@@ -785,13 +785,16 @@ G.ui = (() => {
       if (danger) p.appendChild(h('p', { class: 'dim' }, 'Enemies are too close to rest or travel.'));
       p.appendChild(h('div', { class: 'pack-title' }, 'Travel'));
       const list = h('div', { class: 'ws-list' });
+      // Every waystone in the same fixed order wherever you open this, with the one you
+      // are standing at greyed out.
       for (const id in G.WAYSTONES) {
-        if (id === wsId) continue;
         if (G.WAYSTONES[id].feature && !G.FEATURES[G.WAYSTONES[id].feature]) continue;
-        const known = G.state.waystones[id];
+        const here = id === wsId;
+        const known = G.state.waystones[id] || here;
         const wz = G.zoneWarn(G.WAYSTONES[id].zone);
-        const b = h('button', { class: 'btn ws-btn' }, known ? `${esc(G.WAYSTONES[id].name)}${wz ? ` <span class="ws-rec" style="color:${wz.color}">${esc(wz.text)}</span>` : ' <span class="ws-rec dim">Safe</span>'}` : '<span class="dim">Not yet attuned</span>');
-        b.disabled = !known || danger;
+        const tag = here ? ' <span class="ws-rec">You are here</span>' : wz ? ` <span class="ws-rec" style="color:${wz.color}">${esc(wz.text)}</span>` : ' <span class="ws-rec dim">Safe</span>';
+        const b = h('button', { class: 'btn ws-btn' + (here ? ' ws-here' : '') }, known ? `${esc(G.WAYSTONES[id].name)}${tag}` : '<span class="dim">Not yet attuned</span>');
+        b.disabled = here || !known || danger;
         b.addEventListener('click', () => { closeTop(); G.game.travel(id); });
         list.appendChild(b);
       }
@@ -801,7 +804,7 @@ G.ui = (() => {
 
   function openMenu() {
     openModal('menu', (p) => {
-      header(p, 'Menu', `Embervale · Act I · ${G.util.fmtTime(G.state.playTime)} played`);
+      header(p, 'Menu', `Embervale v${G.VERSION} · Act I · ${G.util.fmtTime(G.state.playTime)} played`);
       const col = h('div', { class: 'menu-col' });
       const b = (label, fn, cls = '') => { const x = h('button', { class: 'btn ' + cls }, label); x.addEventListener('click', fn); col.appendChild(x); return x; };
       b('Resume', () => closeTop(), 'primary');

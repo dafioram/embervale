@@ -234,6 +234,11 @@ G.game = (() => {
 
   /* ---------- main loop ---------- */
   function frame(now) {
+    // schedule the next frame first, so one error can't freeze the game
+    requestAnimationFrame(frame);
+    try { step(now); } catch (err) { G.crash.report(err, 'game loop'); }
+  }
+  function step(now) {
     const dt = Math.min(0.05, (now - last) / 1000 || 0);
     last = now;
     G.gamepad.poll(dt);
@@ -253,7 +258,6 @@ G.game = (() => {
       G.ui.update(dt);
     }
     fpsMeter(now);
-    requestAnimationFrame(frame);
   }
 
   /* Frame-rate readout, shown when Settings → Show FPS is ticked. Reports the
@@ -278,6 +282,7 @@ G.game = (() => {
     G.input.init(document.getElementById('view'));
     G.ui.init();
     G.ui.showTitle();
+    G.crash.mobileGate();
     requestAnimationFrame((t) => { last = t; frame(t); });
   }
 

@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Embervale: The Ember Road</title>
   <meta name="description" content="A small hero-party action RPG in your browser. Act I: The Ember Road.">
+  <meta property="og:title" content="Embervale: The Ember Road">
+  <meta property="og:description" content="A Warcraft III-style hero-party RPG that runs in your browser. About 2 hours, free, no download.">
+  <meta property="og:image" content="https://dafioram.github.io/embervale/screenshots/cinder-warden.jpg">
+  <meta property="og:url" content="https://dafioram.github.io/embervale/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 C10 10 8 14 10 20 C11 26 15 30 16 30 C17 30 21 26 22 20 C24 14 22 10 16 2Z' fill='%23ff7a1a'/%3E%3Cpath d='M16 12 C13 17 13 20 14 24 C15 27 16 28 16 28 C16 28 17 27 18 24 C19 20 19 17 16 12Z' fill='%23ffd27a'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,12 +83,14 @@
         <h2>Act I &middot; The Ember Road</h2>
         <div id="title-buttons"></div>
         <p class="title-note">A hero-party adventure for mouse and keyboard (controllers work too). Progress saves in this browser; export a JSON file from the menu to back it up or move it.</p>
+        <div class="title-ver">v1.0</div>
       </div>
     </div>
     <input type="file" id="import-file" accept="application/json,.json" hidden>
   </div>
 
   <!-- Engine -->
+  <script src="js/core/crash.js"></script>
   <script src="js/core/util.js"></script>
   <!-- Data -->
   <script src="js/data/heroes.js"></script>
