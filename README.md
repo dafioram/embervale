@@ -2,7 +2,7 @@
 
 A small hero-party action RPG that runs in the browser. You lead a band of up to three heroes through an isometric valley: right-click to move and fight, cast abilities on Q W E R, level up, spend skill points, read tomes, buy gear, take quests, and fight bosses with telegraphed attacks.
 
-This repository contains **Act I** (roughly 45–90 minutes of play). The setting, story, characters and all art are original. Everything is drawn with canvas code, so there are no image or audio files.
+This repository contains **Act I** (roughly 45–90 minutes of play). The setting, story, characters, art and music are original. Everything is drawn and synthesized with code, so there are no image or audio files.
 
 It is a static site: plain HTML, CSS and JavaScript with no build step and no dependencies.
 
@@ -34,6 +34,8 @@ The empty `.nojekyll` file tells Pages to serve the files as they are.
 | **Bosses** | Greymane the Old Alpha, Grell Thornjaw, the Bogmother (optional) and the Cinder Warden. |
 | **Set piece** | A three-wave defense of the mill in Brindle Fields. |
 | **Economy** | Three shops in town plus a peddler you can rescue. Tomes raise attributes permanently and cost a little more each time you buy one. Gold is shown with a small coin icon. |
+| **Atmosphere** | Each zone has its own weather and light: pollen, butterflies and cloud shadows in the fields; fireflies, falling leaves, light shafts and mist in Whisperwood; rain, mist and midges in Mirefen; braziers, embers and ash in the Barrows; blue crystal lights in the Underhollow. Trees sway in the wind. |
+| **Music and sound** | A theme for each zone (Hollowmere, Brindle Fields, Whisperwood, Mirefen, the Ashen Barrows and the Underhollow). Drums and bass fade in when a fight starts, bosses get the Barrows battle theme, and music dips while a dialogue or menu is open. Each zone also has background sound (birds, crickets and an owl, frogs, cave drips, crackling embers). |
 
 ### Post-game: the Underhollow
 
@@ -52,6 +54,7 @@ After you finish Act I, Elder Odrin offers **Trouble Below**. A sinkhole opens i
 - **Party wipes are forgiving.** If everyone falls, you wake up in Hollowmere and keep all experience, gold and items. A single fallen hero gets back up once the party has been out of combat for a few seconds.
 - **Enemies respawn.** A cleared camp comes back when you re-enter its zone after about 90 seconds of play. Experience drops off against enemies far below your level, so revisiting old areas helps a little but not forever. Bosses and other unique enemies stay dead.
 - **Recovery between fights.** Heroes recover faster after about 6 seconds out of combat.
+- **Minimap.** Ground you haven't explored stays dark on the minimap, and so do the enemies, people and exits in it. Quest markers, bosses and your heroes always show. Each zone remembers what you've explored.
 - **Waystones.** Walking near a waystone attunes it. Using any waystone restores the party and lets you travel to any other waystone you have attuned.
 
 ## Controls
@@ -101,7 +104,7 @@ Shops and the inventory are easiest with a mouse.
 
 - The game autosaves when you change zones, finish quests and every minute (except during the mill defense). It also has three manual slots. All of these are stored in the browser's `localStorage`.
 - **Menu → Export save** downloads the current game as a `.json` file. **Import save** (in the menu or on the title screen) loads one back. Use this to back up progress, move it to another browser or computer, or keep it for later acts.
-- Settings (volume, edge panning, quick-cast and so on) are saved separately.
+- Settings (volume, music, ambience, effects, zone atmosphere, edge panning, quick-cast and so on) are saved separately. Turning off **Zone atmosphere** removes the particles, weather, tree sway and wall torches, which helps on slow computers. **Show FPS** puts a frame-rate readout in the corner.
 
 The save format is versioned (`"version": 1`). Missing fields are filled with defaults when an older save loads, so future acts can keep reading Act I saves.
 
@@ -127,9 +130,11 @@ js/core/fx.js         particles, projectiles, telegraphs and floating text
 js/core/input.js      mouse and keyboard
 js/core/gamepad.js    controller support (Gamepad API)
 js/core/save.js       localStorage slots, JSON export and import, settings
-js/core/audio.js      synthesized sound effects (WebAudio)
+js/core/audio.js      audio engine: volume buses, reverb, synth instruments, sound effects
+js/core/music.js      zone music (with combat layers) and background ambience
 js/render/sprites.js  procedural art for units, trees and icons
-js/render/render.js   isometric renderer, lighting and minimap
+js/render/render.js   isometric renderer, lighting and minimap (with fog of war)
+js/render/atmos.js    zone atmosphere: particles, weather, wind sway, torches, colour grade
 js/ui/ui.js           HUD, dialogs, shops, inventory, quest log and menus
 js/game.js            state, main loop, party management, the mill event
 tools/check-zones.js  layout checker (see below)
@@ -146,6 +151,20 @@ Most content is data, so adding to the game rarely needs engine changes.
 - **A new quest:** add it to `G.QUESTS` in `quests.js`. Objectives can be `kill`, `collect`, `interact` or `flag`. Use `onAccept` and `onComplete` hooks for story beats, and `markers` to point the minimap at the objective.
 - **Items and shops:** see `G.ITEMS` and `G.SHOPS` in `items.js`.
 
+### Using your own music
+
+Every theme is synthesized, but you can replace any of them with a recorded track. Put the files in a `music/` folder and list them at the top of `js/core/music.js`:
+
+```js
+G.MUSIC_FILES = {
+  hollowmere: 'music/hollowmere.mp3',
+  barrows: 'music/barrows.mp3',
+  barrows_combat: 'music/barrows-combat.mp3', // optional: crossfades in during fights
+};
+```
+
+The theme ids are `hollowmere`, `brindle`, `whisperwood`, `mirefen`, `barrows` (also used for boss fights) and `underhollow`. A `<id>_combat` file is optional; without it, the track keeps playing through fights. Themes you don't list stay synthesized. Check the licence of any music you add, and credit it in this README if the licence asks for that.
+
 ### Layout checker
 
 ```bash
@@ -157,7 +176,7 @@ This generates every zone and confirms that every camp, NPC, object, entry and e
 ## Known limitations
 
 - There is no fog of war, and pathfinding is simpler than in a commercial RTS engine. Units can sometimes bunch up in narrow passages.
-- Sound effects are simple synthesized tones, and there is no music.
+- Music and sound are synthesized, so they have a light, retro-instrument character. Recorded tracks can replace any theme (see *Using your own music*).
 - The camera, HUD and controls are built for desktop screens. Phones and tablets aren't supported.
 - Act II isn't written yet. The Act I ending leaves a hook (the Kindler escapes up the mountain), and saves are ready to carry forward.
 

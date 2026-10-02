@@ -108,7 +108,7 @@ G.save = (() => {
 
 /* Settings live separately so they survive new games. */
 G.settings = (() => {
-  const d = { volume: 0.5, muted: false, edgePan: false, allBars: false, quickCast: false };
+  const d = { volume: 0.5, music: 0.6, ambience: 0.6, effects: 0.8, muted: false, atmosphere: true, showFps: false, edgePan: false, allBars: false, quickCast: false };
   try { Object.assign(d, JSON.parse(localStorage.getItem('embervale.settings') || '{}')); } catch (e) { /* ignore */ }
   return d;
 })();

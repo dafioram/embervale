@@ -13,6 +13,12 @@ G.render = (() => {
   function init(canvas) {
     R.canvas = canvas; R.ctx = canvas.getContext('2d');
     R.light = document.createElement('canvas');
+    // Health bars, labels and floating text draw on their own canvas above the world,
+    // so screen-wide effects (the zone colour tint) can sit between the two.
+    R.ocanvas = document.createElement('canvas'); R.ocanvas.id = 'view-overlay';
+    canvas.after(R.ocanvas);
+    R.octx = R.ocanvas.getContext('2d');
+    if (G.atmos) G.atmos.init(canvas);
     resize();
     window.addEventListener('resize', resize);
   }
@@ -21,6 +27,9 @@ G.render = (() => {
     R.W = window.innerWidth; R.H = window.innerHeight;
     R.canvas.width = R.W * R.dpr; R.canvas.height = R.H * R.dpr;
     R.canvas.style.width = R.W + 'px'; R.canvas.style.height = R.H + 'px';
+    R.ocanvas.width = R.W * R.dpr; R.ocanvas.height = R.H * R.dpr;
+    R.ocanvas.style.width = R.W + 'px'; R.ocanvas.style.height = R.H + 'px';
+    if (G.atmos) G.atmos.resize(R.W, R.H);
     // lighting is soft, so it renders at half resolution
     R.light.width = Math.ceil(R.W / 2); R.light.height = Math.ceil(R.H / 2);
     // the vignette never changes between resizes, so draw it once
@@ -177,6 +186,78 @@ G.render = (() => {
     buildMinimap(grid, Z);
     // props list with iso positions
     R.props = grid.props;
+    if (G.atmos) G.atmos.zone(grid, Z);
+    fogLoad(grid, Z);
+  }
+
+  /* ---------------- minimap fog of war ----------------
+     Each zone remembers which tiles the party has seen (a bitset in the save).
+     Unexplored ground stays dark on the minimap. */
+  const FOG_R = 8.5;
+  function fogLoad(grid, Z) {
+    const id = G.world.zoneId, n = grid.w * grid.h;
+    const f = { id, w: grid.w, h: grid.h, cells: new Uint8Array(n), dirty: true, t: 0, canvas: null };
+    if (Z.safe) f.cells.fill(1);
+    else {
+      const str = G.state.explored && G.state.explored[id];
+      if (str) {
+        try {
+          const bin = atob(str);
+          for (let i = 0; i < n; i++) if (bin.charCodeAt(i >> 3) & (1 << (i & 7))) f.cells[i] = 1;
+        } catch (e) { /* damaged data: start dark */ }
+      }
+    }
+    R.fog = f;
+  }
+  function fogSave(f) {
+    const bytes = new Uint8Array(Math.ceil(f.cells.length / 8));
+    for (let i = 0; i < f.cells.length; i++) if (f.cells[i]) bytes[i >> 3] |= 1 << (i & 7);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    if (!G.state.explored) G.state.explored = {};
+    G.state.explored[f.id] = btoa(bin);
+  }
+  function fogUpdate(dt) {
+    const f = R.fog;
+    if (!f || f.id !== G.world.zoneId) return;
+    f.t -= dt;
+    if (f.t > 0) return;
+    f.t = 0.25;
+    let changed = false;
+    const r2 = FOG_R * FOG_R;
+    for (const h of G.world.entities) {
+      if (h.kind !== 'hero' || h.dead) continue;
+      const x0 = Math.max(0, Math.floor(h.x - FOG_R)), x1 = Math.min(f.w - 1, Math.ceil(h.x + FOG_R));
+      const y0 = Math.max(0, Math.floor(h.y - FOG_R)), y1 = Math.min(f.h - 1, Math.ceil(h.y + FOG_R));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const k = y * f.w + x;
+        if (f.cells[k]) continue;
+        const dx = x + 0.5 - h.x, dy = y + 0.5 - h.y;
+        if (dx * dx + dy * dy <= r2) { f.cells[k] = 1; changed = true; }
+      }
+    }
+    if (changed) { f.dirty = true; fogSave(f); }
+  }
+  function fogSeen(x, y) {
+    const f = R.fog;
+    if (!f) return true;
+    const cx = Math.max(0, Math.min(f.w - 1, Math.floor(x))), cy = Math.max(0, Math.min(f.h - 1, Math.floor(y)));
+    return !!f.cells[cy * f.w + cx];
+  }
+  // Unexplored tiles as a tiny image, one pixel per tile. It is drawn onto the minimap
+  // through the iso transform, and the browser's smoothing softens the edges.
+  function fogCanvas() {
+    const f = R.fog;
+    if (!f.canvas) { f.canvas = document.createElement('canvas'); f.canvas.width = f.w; f.canvas.height = f.h; }
+    if (!f.dirty) return f.canvas;
+    f.dirty = false;
+    const fx = f.canvas.getContext('2d'), img = fx.createImageData(f.w, f.h), d = img.data;
+    for (let i = 0; i < f.cells.length; i++) {
+      if (f.cells[i]) continue;
+      d[i * 4] = 10; d[i * 4 + 1] = 7; d[i * 4 + 2] = 5; d[i * 4 + 3] = 240;
+    }
+    fx.putImageData(img, 0, 0);
+    return f.canvas;
   }
 
   function buildMinimap(grid, Z) {
@@ -188,6 +269,7 @@ G.render = (() => {
     // blockers as darker dots
     const sx = mw / R.cache.width, sy = mh / R.cache.height;
     for (const p of grid.props) {
+      if (p.kind === 'torch') continue;
       const [ix, iy] = iso(p.x + (p.w || 1) / 2, p.y + (p.h || 1) / 2);
       x.fillStyle = p.kind === 'tree' ? 'rgba(20,40,15,0.55)' : p.kind === 'building' ? '#c9a46a' : p.kind === 'cavewall' ? 'rgba(10,8,8,0.6)' : 'rgba(60,50,40,0.6)';
       const s = p.kind === 'building' ? 8 : 3.2;
@@ -210,6 +292,7 @@ G.render = (() => {
       cam.x += (lead.x - cam.x) * k; cam.y += (lead.y - cam.y) * k;
     }
     clampCam();
+    fogUpdate(dt);
     const [sx0, sy0] = G.fx.shakeOffset();
     const z = cam.zoom;
     const [cx, cy] = iso(cam.x, cam.y);
@@ -268,11 +351,16 @@ G.render = (() => {
       if (it.p) { if (!skip.props) drawProp(ctx, it.p); }
       else if (!skip.ents) drawEntity(ctx, it.e, dt);
     }
+    if (G.atmos && G.atmos.on) G.atmos.world(ctx, dt, vx0, vx1, vy0, vy1);
     if (!skip.fx) drawFx(ctx);
     ctx.restore();
 
     if (!skip.light && (R.theme === 'cave' || R.theme === 'deep' || R.theme === 'forest' || R.theme === 'swamp')) drawLighting(ctx);
-    if (!skip.overlay) drawOverlay(ctx);
+    if (G.atmos) G.atmos.screen(ctx);
+    const octx = R.octx;
+    octx.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
+    octx.clearRect(0, 0, R.W, R.H);
+    if (!skip.overlay) drawOverlay(octx);
   }
 
   /* Insert a building-sized item into the depth-sorted list. Anything overlapping it
@@ -446,9 +534,15 @@ G.render = (() => {
       const s = S.treeSprite(R.theme, p.v);
       const [ix, iy] = iso(p.x, p.y);
       const sc = p.s;
-      ctx.drawImage(s, ix - s.ax * sc, iy - s.ay * sc, s.lw * sc, s.lh * sc);
+      // trees lean with the wind (zone atmosphere)
+      const sway = G.atmos && G.atmos.on ? G.atmos.sway(p) : 0;
+      if (sway) {
+        const c = swayedTree(s, sway);
+        ctx.drawImage(c, ix - c.ax * sc, iy - s.ay * sc, c.lw * sc, s.lh * sc);
+      } else ctx.drawImage(s, ix - s.ax * sc, iy - s.ay * sc, s.lw * sc, s.lh * sc);
       return;
     }
+    if (p.kind === 'torch') { if (G.atmos && G.atmos.on) G.atmos.drawTorch(ctx, p); return; }
     if (p.kind === 'boulder') {
       const s = S.boulderSprite(R.theme, p.v);
       const [ix, iy] = iso(p.x, p.y);
@@ -460,6 +554,30 @@ G.render = (() => {
     if (p.kind === 'palisade') return drawFence(ctx, p, true);
     if (p.kind === 'building') return drawBuilding(ctx, p);
     if (p.kind === 'gate') return drawGate(ctx, p);
+  }
+
+  /* Trees leaning in the wind. Drawing a skewed image every frame is slow (very slow
+     in Firefox), so each lean is rendered once into a small cached image, in steps
+     fine enough (well under a pixel at the tree top) that the motion stays smooth.
+     The cache keeps the most recently used leans. */
+  const SWAY_STEP = 0.004, swayCache = new Map();
+  let spriteIds = 0;
+  function swayedTree(s, sway) {
+    const lvl = Math.round(sway / SWAY_STEP);
+    if (!s._sid) s._sid = ++spriteIds;
+    const key = s._sid + '|' + lvl;
+    let c = swayCache.get(key);
+    if (c) { swayCache.delete(key); swayCache.set(key, c); return c; }
+    const sk = lvl * SWAY_STEP, q = s.width / s.lw;
+    const pad = Math.ceil(Math.abs(sk) * s.ay * q) + 1;
+    c = document.createElement('canvas'); c.width = s.width + pad * 2; c.height = s.height;
+    const x = c.getContext('2d');
+    x.setTransform(1, 0, sk, 1, pad - sk * s.ay * q, 0);
+    x.drawImage(s, 0, 0);
+    c.ax = s.ax + pad / q; c.lw = s.lw + (pad * 2) / q;
+    swayCache.set(key, c);
+    if (swayCache.size > 160) swayCache.delete(swayCache.keys().next().value);
+    return c;
   }
 
   function drawCaveWall(ctx, p) {
@@ -948,6 +1066,7 @@ G.render = (() => {
       }
     }
     if (isCave) for (const pr of G.fx.projs) hole(pr.x, pr.y, 60, 0.8);
+    if (G.atmos && G.atmos.on) for (const l of G.atmos.lights()) hole(l.x, l.y, l.r, l.a);
     if (isCave) for (const ex of G.exitsOf(G.world.zone)) hole(ex.x, ex.y, ex.style === 'up' ? 130 : 90, 0.75);
     lx.globalCompositeOperation = 'source-over';
     ctx.drawImage(L, 0, 0, R.W, R.H);
@@ -1089,24 +1208,35 @@ G.render = (() => {
     x.clearRect(0, 0, mc.width, mc.height);
     x.setTransform(L, 0, 0, L, 0, 0);
     x.drawImage(R.mini, 0, 0, lw, lh);
+    if (R.fog && R.fog.id === G.world.zoneId) {
+      // tile (tx,ty) -> minimap pixels: the iso projection scaled into the minimap
+      const fc = fogCanvas(), { sx: msx, sy: msy } = R.miniScale, kx = lw / R.mini.width, ky = lh / R.mini.height;
+      x.save();
+      x.transform(HW * msx * kx, HH * msy * ky, -HW * msx * kx, HH * msy * ky, R.ox * msx * kx, 0);
+      x.imageSmoothingEnabled = true;
+      x.drawImage(fc, 0, 0);
+      x.restore();
+    }
     const { sx, sy } = R.miniScale;
     const kx = lw / R.mini.width, ky = lh / R.mini.height;
     const pt = (wx, wy) => { const [ix, iy] = iso(wx, wy); return [(R.ox + ix) * sx * kx, iy * sy * ky]; };
-    for (const ex of G.exitsOf(G.world.zone)) { const [px, py] = pt(ex.x, ex.y); x.fillStyle = ex.flag && !G.state.flags[ex.flag] ? '#ff6a3a' : '#ffe08a'; x.fillRect(px - 3, py - 3, 6, 6); }
+    for (const ex of G.exitsOf(G.world.zone)) { if (!fogSeen(ex.x, ex.y)) continue; const [px, py] = pt(ex.x, ex.y); x.fillStyle = ex.flag && !G.state.flags[ex.flag] ? '#ff6a3a' : '#ffe08a'; x.fillRect(px - 3, py - 3, 6, 6); }
     const dot = (px, py, r, fill) => {
       x.beginPath(); x.arc(px, py, r, 0, Math.PI * 2);
       x.fillStyle = fill; x.fill();
       x.lineWidth = 1; x.strokeStyle = 'rgba(0,0,0,0.85)'; x.stroke();
     };
     // draw in layers so heroes are never hidden under a crowd of enemies
+    // fog hides everything in unexplored ground except heroes, bosses and quest markers
     for (const e of G.world.entities) {
-      if (e.dead) continue;
+      if (e.dead || !fogSeen(e.x, e.y)) continue;
       const [px, py] = pt(e.x, e.y);
       if (e.kind === 'npc') { const m = G.quests.marker(e.npcId); x.fillStyle = m === 'available' || m === 'ready' ? '#ffd23f' : '#e0d0a0'; x.fillRect(px - 2, py - 2, 4, 4); }
       else if (e.kind === 'object' && e.objKind === 'waystone') { x.fillStyle = '#7fe3ff'; x.fillRect(px - 2, py - 2, 4, 4); }
     }
     for (const e of G.world.entities) {
       if (e.dead || e.kind !== 'enemy') continue;
+      if (!e.def.boss && !fogSeen(e.x, e.y)) continue;
       const [px, py] = pt(e.x, e.y);
       if (e.def.boss) {
         const pr = 4.2 + Math.sin(R.time * 5) * 0.8;

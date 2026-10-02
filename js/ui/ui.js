@@ -62,6 +62,7 @@ G.ui = (() => {
       if (f) G.save.importJson(f, () => closeAll());
     });
     document.addEventListener('pointerdown', () => G.audio.unlock(), { once: true });
+    document.addEventListener('keydown', () => G.audio.unlock(), { once: true });
   }
 
   /* ---------- screens ---------- */
@@ -792,11 +793,20 @@ G.ui = (() => {
       header(p, 'Settings', 'Stored in this browser');
       const S = G.settings;
       const row = (label, input) => { const r = h('label', { class: 'set-row' }, `<span>${label}</span>`); r.appendChild(input); p.appendChild(r); };
-      const chk = (key) => { const i = h('input', { type: 'checkbox' }); i.checked = !!S[key]; i.addEventListener('change', () => { S[key] = i.checked; G.saveSettings(); }); return i; };
-      const vol = h('input', { type: 'range', min: 0, max: 1, step: 0.05 }); vol.value = S.volume;
-      vol.addEventListener('input', () => { S.volume = +vol.value; G.saveSettings(); }); vol.addEventListener('change', () => G.audio.play('quest'));
-      row('Sound volume', vol);
+      const chk = (key) => { const i = h('input', { type: 'checkbox' }); i.checked = !!S[key]; i.addEventListener('change', () => { S[key] = i.checked; G.saveSettings(); G.audio.applyVolumes(); }); return i; };
+      const slider = (key, label, test) => {
+        const v = h('input', { type: 'range', min: 0, max: 1, step: 0.05 }); v.value = S[key];
+        v.addEventListener('input', () => { S[key] = +v.value; G.saveSettings(); G.audio.applyVolumes(); });
+        if (test) v.addEventListener('change', () => G.audio.play(test));
+        row(label, v);
+      };
+      slider('volume', 'Overall volume', 'quest');
+      slider('music', 'Music');
+      slider('ambience', 'Ambience (wind, birds, crickets…)');
+      slider('effects', 'Sound effects', 'hit');
       row('Mute', chk('muted'));
+      row('Zone atmosphere (particles, weather, wall torches)', chk('atmosphere'));
+      row('Show FPS (frame rate in the corner)', chk('showFps'));
       row('Pan the camera at screen edges', chk('edgePan'));
       row('Always show enemy health bars', chk('allBars'));
       row('Quick-cast (abilities fire at the cursor without a click)', chk('quickCast'));

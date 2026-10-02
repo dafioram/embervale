@@ -2,7 +2,7 @@
 G.freshState = () => ({
   version: 1, zone: 'hollowmere', pos: null,
   party: [], gold: 0, pack: [], quests: {}, flags: {}, camps: {}, objects: {}, uniques: {},
-  waystones: {}, visited: {}, tomesBought: {}, playTime: 0, kills: 0, actDone: false,
+  waystones: {}, visited: {}, explored: {}, tomesBought: {}, playTime: 0, kills: 0, actDone: false,
 });
 G.partyLevel = () => (G.state && G.state.party.length ? Math.max(...G.state.party.map((h) => h.level)) : 1);
 
@@ -237,6 +237,7 @@ G.game = (() => {
     const dt = Math.min(0.05, (now - last) / 1000 || 0);
     last = now;
     G.gamepad.poll(dt);
+    try { G.music.update(dt); } catch (e) { /* music is best-effort */ }
     const live = Gm.running && !Gm.paused && !G.ui.modal() && !G.world.transitioning;
     if (live) {
       G.state.playTime += dt;
@@ -251,7 +252,25 @@ G.game = (() => {
       G.render.draw(live ? dt : 0);
       G.ui.update(dt);
     }
+    fpsMeter(now);
     requestAnimationFrame(frame);
+  }
+
+  /* Frame-rate readout, shown when Settings → Show FPS is ticked. Reports the
+     average over half a second plus the slowest frame in that window. */
+  const fpsS = { n: 0, t0: 0, prev: 0, worst: 0, el: null, on: false };
+  function fpsMeter(now) {
+    const on = !!G.settings.showFps && Gm.running;
+    if (!fpsS.el) fpsS.el = document.getElementById('fps');
+    if (on !== fpsS.on) { fpsS.on = on; fpsS.el.classList.toggle('hidden', !on); fpsS.n = 0; fpsS.t0 = now; fpsS.worst = 0; }
+    if (!on) { fpsS.prev = now; return; }
+    const ft = now - (fpsS.prev || now); fpsS.prev = now;
+    fpsS.n++; fpsS.worst = Math.max(fpsS.worst, ft);
+    if (now - fpsS.t0 >= 500) {
+      const fps = (fpsS.n * 1000) / (now - fpsS.t0);
+      fpsS.el.textContent = `${fps.toFixed(0)} fps  ${(1000 / fps).toFixed(1)} ms  (slowest ${fpsS.worst.toFixed(0)} ms)`;
+      fpsS.n = 0; fpsS.t0 = now; fpsS.worst = 0;
+    }
   }
 
   function boot() {
