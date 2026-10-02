@@ -129,7 +129,7 @@
       name: 'Spirit Tide', icon: 'tide', color: '#4fd1c5', maxRank: 2, ult: true,
       target: 'none',
       mana: [175, 200], cd: [90, 75], heal: [300, 450],
-      desc: (r, a) => `Heal every ally in the area for ${V(a.heal, r)} and raise fallen heroes at half health.`,
+      desc: (r, a) => `Heal every ally in the area for ${V(a.heal, r)} and raise fallen heroes at half health (they are Shaken: 20% less damage for 30s).`,
       cast(c, t, r, a) {
         for (const e of G.world.entities) {
           if (e.team !== c.team || e.kind === 'structure') continue;

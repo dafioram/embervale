@@ -538,6 +538,17 @@ G.sprites = (() => {
         x.fillStyle = L; x.beginPath(); x.arc(20, 27, 3.5, 0, TAU); x.fill();
         x.fillStyle = '#8a6a3a'; x.fillRect(20, 6, 8, 5);
         break;
+      case 'feather': {
+        // a curved flame-coloured feather with a quill
+        x.save(); x.translate(24, 25); x.rotate(-0.6);
+        const fg = x.createLinearGradient(0, -18, 0, 16); fg.addColorStop(0, '#ffe08a'); fg.addColorStop(0.5, M); fg.addColorStop(1, '#c0391b');
+        x.fillStyle = fg; x.beginPath(); x.moveTo(0, -19); x.quadraticCurveTo(10, -8, 6, 10); x.quadraticCurveTo(2, 14, 0, 15); x.quadraticCurveTo(-2, 14, -6, 10); x.quadraticCurveTo(-10, -8, 0, -19); x.fill();
+        x.strokeStyle = 'rgba(120,30,10,0.55)'; x.lineWidth = 1;
+        for (let i = -12; i < 10; i += 4) { x.beginPath(); x.moveTo(0, i); x.lineTo(-5, i + 4); x.moveTo(0, i); x.lineTo(5, i + 4); x.stroke(); }
+        x.strokeStyle = W; x.lineWidth = 1.6; x.beginPath(); x.moveTo(0, -16); x.lineTo(0, 22); x.stroke();
+        x.restore();
+        break;
+      }
       case 'herb':
         x.strokeStyle = '#3a7a2a'; x.lineWidth = 2; x.beginPath(); x.moveTo(24, 42); x.lineTo(24, 16); x.stroke();
         for (const [a, y] of [[-1, 30], [1, 24], [-1, 18], [1, 34]]) { x.fillStyle = a > 0 ? L : M; x.beginPath(); x.ellipse(24 + a * 7, y, 7, 3.5, a * 0.5, 0, TAU); x.fill(); }

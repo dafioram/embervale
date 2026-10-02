@@ -274,11 +274,18 @@ G.ai = (() => {
       e.target = acquire(e, e.raid ? 4 : d.boss ? 5 : 5.2);
       if (e.target) alertCamp(e, e.target);
     } else {
+      // Fight whoever is closest: switch when the current target has moved out of reach
+      // and someone else is within reach, or when someone is clearly closer. A swing
+      // in progress finishes first, and taunts override all of this.
       e.retarget = (e.retarget || 0) - dt;
-      if (e.retarget <= 0 && !e.taunt) {
-        e.retarget = 2.5;
-        const n = acquire(e, 5);
-        if (n && n !== e.target && edgeDist(e, n) + 2.5 < edgeDist(e, e.target)) e.target = n;
+      if (e.retarget <= 0 && !e.taunt && !(e.swing > 0) && !(e.busy > 0)) {
+        e.retarget = 0.5;
+        const reach = (e.range || 1) + 0.3;
+        const n = acquire(e, Math.max(5, reach + 1));
+        if (n && n !== e.target) {
+          const dCur = edgeDist(e, e.target), dN = edgeDist(e, n);
+          if ((dCur > reach && dN <= reach) || dN + 1.5 < dCur) e.target = n;
+        }
       }
     }
     if (e.raid && !e.target) {

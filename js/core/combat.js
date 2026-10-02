@@ -4,7 +4,7 @@ G.combat = (() => {
 
   // Recompute buff-derived modifiers; called once per unit per frame.
   function tickBuffs(e, dt) {
-    const m = { armor: 0, atkSpeed: 0, moveMul: 0, dmgTaken: 0, evasion: 0 };
+    const m = { armor: 0, atkSpeed: 0, moveMul: 0, dmgTaken: 0, evasion: 0, dmgOut: 0 };
     e.stunned = false; e.taunt = null;
     for (let i = e.buffs.length - 1; i >= 0; i--) {
       const b = e.buffs[i];
@@ -63,6 +63,7 @@ G.combat = (() => {
       return 0;
     }
     let dmg = amount;
+    if (src && src.mods && src.mods.dmgOut) dmg *= Math.max(0, 1 + src.mods.dmgOut);
     if (!opts.spell) dmg *= 1 - G.armorReduction((tgt.armor || 0) + (m.armor || 0));
     dmg *= 1 + (m.dmgTaken || 0);
     dmg = Math.max(1, Math.round(dmg));
@@ -114,6 +115,7 @@ G.combat = (() => {
       G.fx.text(e.x, e.y, 'Pelt', '#e8c47a', 13, 0.7);
     }
     if (d.drops) for (const id of d.drops) G.world.dropLoot(id, e.x, e.y);
+    if (d.boss && Math.random() < 0.5) G.world.dropLoot('phoenix_feather', e.x, e.y);
     else if (d.dropChance && Math.random() < d.dropChance) { const id = G.rollLoot(G.world.zoneId); if (id) G.world.dropLoot(id, e.x, e.y); }
     if (e.unique) { G.state.uniques[e.unique] = true; G.save.auto(); }
     G.world.onEnemyDeath(e);

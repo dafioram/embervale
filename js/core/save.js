@@ -70,6 +70,12 @@ G.save = (() => {
       while (hs.items.length < 6) hs.items.push(null);
     }
     s.pack = (s.pack || []).filter((it) => it && G.ITEMS[it.id]);
+    // Underhollow waystones moved to floors 3, 5, 7 and 10: drop the old ones and
+    // attune any new one on a floor the party has already reached.
+    if (G.DEEP_WAYSTONES) {
+      for (const id of Object.keys(s.waystones)) if (id.startsWith('ws_deep') && !G.WAYSTONES[id]) delete s.waystones[id];
+      for (const n of G.DEEP_WAYSTONES) if (s.visited['deep' + n]) s.waystones['ws_deep' + n] = true;
+    }
     return obj;
   }
 

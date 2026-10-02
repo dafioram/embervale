@@ -379,3 +379,24 @@ img { -webkit-user-drag: none; }
 /* layers the renderer stacks over the game canvas */
 #view-overlay, #view-rays, .grade-layer { position: absolute; inset: 0; pointer-events: none; }
 #view-rays { width: 100%; height: 100%; mix-blend-mode: screen; }
+
+/* shop: party column */
+.shop-cols { grid-template-columns: 1fr 440px; }
+@media (max-width: 1020px) { .shop-cols { grid-template-columns: 1fr; } }
+.shop-left { min-width: 0; }
+.buy-for b { color: var(--brass-hi); }
+.shop-party { display: flex; flex-direction: column; gap: 6px; }
+.shop-party .pack-title span { display: block; margin-top: 2px; font-family: inherit; font-size: 11.5px; color: var(--dim); }
+.shop-hero { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(0, 0, 0, 0.25); border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
+.shop-hero:hover { border-color: rgba(232, 199, 125, 0.35); }
+.shop-hero.on { border-color: var(--brass-hi); background: rgba(120, 80, 20, 0.25); }
+.sh-head { display: flex; align-items: center; gap: 6px; width: 104px; flex: none; }
+.sh-head img { width: 30px; height: 30px; border-radius: 3px; }
+.sh-head b { display: block; font-size: 13px; color: var(--brass-hi); }
+.sh-head small { display: block; white-space: nowrap; color: var(--dim); font-size: 11px; }
+.slots.shoprow { grid-template-columns: repeat(6, 46px); }
+.slots.shoprow .slot, .slots.shoppack .slot { width: 46px; height: 46px; }
+.slots.shoppack { grid-template-columns: repeat(8, 46px); }
+.tt-cmp { margin-top: 5px; font-size: 12.5px; line-height: 1.5; }
+.tt-cmp .up { color: #8fe08a; }
+.tt-cmp .down { color: #ff8a7a; }

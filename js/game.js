@@ -204,7 +204,7 @@ G.game = (() => {
 
   function restParty() {
     for (const e of G.world.heroes()) {
-      if (e.dead) G.world.reviveHero(e, 1);
+      if (e.dead) G.world.reviveHero(e, 1, false);
       e.hp = e.maxHp; e.mp = e.maxMp;
       e.buffs = e.buffs.filter((b) => b.good);
       G.fx.burst(e.x, e.y, '#b6ffca', 14, 2, -1.5);

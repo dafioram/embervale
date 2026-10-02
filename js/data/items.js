@@ -10,6 +10,17 @@ G.ITEMS = {
     desc: 'Restores 520 health.', use: (h) => { if (h.hp >= h.maxHp) return false; G.combat.heal(h, 520, h); G.fx.burst(h.x, h.y, '#ff8aa8', 16, 2, -1.5); G.audio.play('drink'); return true; } },
   mana_tonic: { name: 'Mana Tonic', kind: 'consumable', icon: 'potion', color: '#3f7ee8', price: 60, stack: 10,
     desc: 'Restores 150 mana.', use: (h) => { if (h.mp >= h.maxMp) return false; h.mp = Math.min(h.maxMp, h.mp + 150); G.fx.burst(h.x, h.y, '#8ab4ff', 12, 2, -1.5); G.audio.play('drink'); return true; } },
+  phoenix_feather: { name: 'Phoenix Feather', kind: 'consumable', icon: 'feather', color: '#ff9a3a', price: 150, stack: 3,
+    desc: 'Raises the nearest fallen ally within 10 paces at 40% health, even mid-fight. They are Shaken (20% less damage) for 30 seconds.',
+    use: (h) => {
+      const fallen = G.world.heroes().filter((x) => x.dead && x !== h && G.util.dist(x, h) < 10).sort((a, b) => G.util.dist(a, h) - G.util.dist(b, h))[0];
+      if (!fallen) { G.ui.toast('No fallen ally close enough.', 'bad'); return false; }
+      G.world.reviveHero(fallen, 0.4);
+      G.fx.burst(fallen.x, fallen.y, '#ffb347', 34, 3, -2.5); G.fx.ring(fallen.x, fallen.y, 1.4, '#ffcf6a', 0.7, true);
+      G.audio.play('summon');
+      G.ui.toast(`${G.HEROES[fallen.heroId].name} rises from the ashes!`, 'level');
+      return true;
+    } },
   rejuvenation_herb: { name: 'Rejuvenation Herb', kind: 'consumable', icon: 'herb', color: '#5fbf5a', price: 90, stack: 10,
     desc: 'Restores 320 health and 160 mana over 10 seconds.',
     use: (h) => { G.combat.buff(h, { id: 'rejuv', name: 'Rejuvenating', t: 10, hot: 32, mot: 16, color: '#7be07a', good: true }); G.audio.play('drink'); return true; } },
@@ -51,7 +62,7 @@ G.ITEMS = {
 // Shops: list entries may carry an `unlock` predicate evaluated against G.state.
 G.SHOPS = {
   provisioner: { name: "Marta's Provisions", items: [
-    { id: 'healing_draught' }, { id: 'mana_tonic' }, { id: 'rejuvenation_herb' }, { id: 'hearth_scroll' },
+    { id: 'healing_draught' }, { id: 'mana_tonic' }, { id: 'rejuvenation_herb' }, { id: 'hearth_scroll' }, { id: 'phoenix_feather' },
     { id: 'greater_healing', unlock: (s) => G.quests.isDone('thornjaw'), hint: 'After the bandit threat ends' },
   ] },
   smith: { name: "Brannoc's Forge", items: [

@@ -44,14 +44,14 @@ After you finish Act I, Elder Odrin offers **Trouble Below**. A sinkhole opens i
 - **Floors** are generated cave levels with 3–6 enemy camps each. A guardian camp seals the stairs down; defeat it to open the way. Opened stairs stay open.
 - **Difficulty** rises one enemy level per floor (level 10 on floor 1 to level 19 on floor 10), with health and damage up about 9% per level. Past floor 6 the enemies out-level a capped party, so tomes and gear matter.
 - **Bosses:** the Brood Mother on floor 5 and the Hollow King on floor 10.
-- **Checkpoints:** waystones on floors 1, 4 and 7. A party wipe still sends you to town; use a waystone to return to your deepest checkpoint.
+- **Checkpoints:** waystones on floors 3, 5, 7 and 10, each right where you arrive (floors 5 and 10 are the boss floors). A party wipe still sends you to town; use a waystone to return to your deepest checkpoint.
 - **Rewards:** experience and gold scale with depth, a deep loot table with new gear, and a unique drop from each boss.
 - **Switching it off:** set `G.FEATURES.underhollow = false` at the top of `js/data/underhollow.js`. The quest, the sinkhole and the dungeon waystones disappear; saves stay compatible.
 
 ### How the rules work
 
 - **XP is shared.** Every hero in the party earns full XP from each kill. Recruits join at the party's current level with skill points to spend.
-- **Party wipes are forgiving.** If everyone falls, you wake up in Hollowmere and keep all experience, gold and items. A single fallen hero gets back up once the party has been out of combat for a few seconds.
+- **Party wipes are forgiving.** If everyone falls, you wake up in Hollowmere and keep all experience, gold and items. A single fallen hero gets back up once the party has been out of combat for a few seconds. Tobin's Spirit Tide and a **Phoenix Feather** (sold by Marta, sometimes dropped by bosses) revive a fallen hero mid-fight. Any hero who gets back up is **Shaken** for 30 seconds (20% less damage); resting at a waystone or the inn clears it.
 - **Enemies respawn.** A cleared camp comes back when you re-enter its zone after about 90 seconds of play. Experience drops off against enemies far below your level, so revisiting old areas helps a little but not forever. Bosses and other unique enemies stay dead.
 - **Recovery between fights.** Heroes recover faster after about 6 seconds out of combat.
 - **Minimap.** Ground you haven't explored stays dark on the minimap, and so do the enemies, people and exits in it. Quest markers, bosses and your heroes always show. Each zone remembers what you've explored.
@@ -82,7 +82,7 @@ After you finish Act I, Elder Odrin offers **Trouble Below**. A sinkhole opens i
 | P | Pause. |
 | Esc | Cancel targeting, close a panel, clear the target frame, or open the menu. |
 
-In the inventory you can drag items between heroes and the shared pack. Left-click an item to use it; right-click to move it to the pack.
+In the inventory you can drag items between heroes and the shared pack. Left-click an item to use it; right-click to move it to the pack. In a shop, every hero's bag and the pack are shown: click a hero to buy for them, click an item to sell one (shift-click sells the whole stack), drag to move items, and hover gear to see what it would change for that hero.
 
 ### Controller (standard mapping)
 

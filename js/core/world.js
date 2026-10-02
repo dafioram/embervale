@@ -208,8 +208,11 @@ G.world = (() => {
     }
     e.x = bx; e.y = by; e.path = null; e.order = null; e.guard = { x: bx, y: by };
   }
-  function reviveHero(e, frac) {
+  // Bring a fallen hero back. Getting up mid-adventure leaves them Shaken (less damage
+  // for a while); resting at a waystone or the inn clears it.
+  function reviveHero(e, frac, shaken = true) {
     e.dead = false; e.hs.dead = false; e.hp = e.maxHp * frac; e.deathT = 0; e.buffs = []; e.order = null; e.target = null;
+    if (shaken) G.combat.buff(e, { id: 'shaken', name: 'Shaken', desc: '20% less damage', t: 30, mods: { dmgOut: -0.2 }, color: '#b8a4d6' });
   }
 
   /* ---------- objects, interaction, loot ---------- */

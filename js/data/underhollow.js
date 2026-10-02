@@ -157,6 +157,10 @@ const DEEP_POOLS = [
     guard: ['stone_sentinel', 'stone_sentinel', 'hollow_knight'] },
 ];
 
+// Floors with a waystone, each at the floor's arrival point: a checkpoint every two
+// floors or so, plus one at the door of each boss floor (5 and 10).
+G.DEEP_WAYSTONES = [3, 5, 7, 10];
+
 G.makeDeepFloor = (n) => {
   const r = G.util.rng(9001 + n * 7919);
   const W = 48, H = 48;
@@ -202,7 +206,7 @@ G.makeDeepFloor = (n) => {
   else camps.push({ id: `d${n}_guard`, x: last.x, y: last.y + 0.5, units: pool.guard, scale: lvl, opens: `deep${n}_open`, guardian: true });
 
   const objects = [];
-  if (n === 1 || n === 4 || n === 7) objects.push({ id: `ws_deep${n}`, kind: 'waystone', x: first.x - 2.2, y: first.y - 1.2 });
+  if (G.DEEP_WAYSTONES.includes(n)) objects.push({ id: `ws_deep${n}`, kind: 'waystone', x: first.x - 2.2, y: first.y - 1.2 });
   sides.forEach((s, i) => objects.push({ id: `chest_deep${n}_${i}`, kind: 'chest', x: s.x + 1.2, y: s.y - 1.4, gold: 120 + n * 40, item: G.LOOT.deep[(n + i * 3) % G.LOOT.deep.length][0], requiresCamp: `d${n}_s${i}` }));
 
   const exits = [
@@ -229,7 +233,7 @@ for (let n = 1; n <= G.DEEP_FLOORS; n++) {
   G.ZONES['deep' + n] = G.makeDeepFloor(n);
   const Z = G.ZONES['deep' + n], bossCamp = Z.camps.find((c) => c.unique);
   if (bossCamp) G.QUESTS.trouble_below.markers.push({ zone: 'deep' + n, x: bossCamp.x, y: bossCamp.y, objective: n === 5 ? 0 : 1 });
-  if (n === 1 || n === 4 || n === 7) G.WAYSTONES['ws_deep' + n] = { zone: 'deep' + n, name: `Underhollow, floor ${n}`, feature: 'underhollow' };
+  if (G.DEEP_WAYSTONES.includes(n)) G.WAYSTONES['ws_deep' + n] = { zone: 'deep' + n, name: `Underhollow, floor ${n}`, feature: 'underhollow' };
 }
 
 // The sinkhole in Hollowmere: hidden until the quest opens it.

@@ -531,6 +531,7 @@ G.ui = (() => {
     const kind = { consumable: 'Consumable — click or press its number to use', equip: 'Equipment — works while carried', tome: 'Tome — use to read; the bonus is permanent' }[it.kind];
     let s = `<b class="${it.unique ? 'tt-unique' : ''}">${esc(it.name)}</b><div class="tt-sub">${kind}</div><p>${esc(it.desc)}</p>`;
     if (price) s += `<div class="tt-cost">${price}${COIN}${tome ? ' \u2014 tomes cost more each time you buy one' : ''}</div>`;
+    if (price && findModal('shop')) s += compareTip(id);
     else if (findModal('shop')) s += `<div class="tt-cost">Sells for ${G.sellPrice(id)}${COIN}</div>`;
     return s;
   }
@@ -628,15 +629,19 @@ G.ui = (() => {
     }, { cls: 'wide' });
   }
 
+  /* Shops: wares on the left; on the right the whole party, one row per hero with all
+     six bag slots, then the shared pack. Click a hero's row to buy for them. Click an
+     item to sell one, shift-click to sell the stack, or drag items between bags. */
+  let shopBuyer = null;
   function openShop(shopId, npcId) {
     const shop = G.SHOPS[shopId];
-    let buyer = G.input.activeId;
+    if (!G.state.party.some((x) => x.id === shopBuyer)) shopBuyer = G.input.activeId;
     openModal('shop', (p, m) => {
       header(p, esc(shop.name), `${esc(G.NPCS[npcId].name)} · You have <b class="gold">${G.state.gold}</b>${COIN}`);
-      p.appendChild(h('div', { class: 'buy-for' }, 'Buying for:'));
-      heroTabs(p, buyer, (id) => { buyer = id; m.rebuild(); });
-      const hs = G.state.party.find((x) => x.id === buyer);
+      const hs = G.state.party.find((x) => x.id === shopBuyer) || G.state.party[0];
       const cols = h('div', { class: 'shop-cols' });
+      const left = h('div', { class: 'shop-left' });
+      left.appendChild(h('div', { class: 'buy-for' }, `Buying for <b>${esc(heroName(hs.id))}</b>. Tomes are read by that hero right away.`));
       const list = h('div', { class: 'shop-list' });
       for (const entry of shop.items) {
         const it = G.ITEMS[entry.id];
@@ -647,17 +652,59 @@ G.ui = (() => {
         if (!locked) row.addEventListener('click', () => { buy(entry.id, hs); m.rebuild(); });
         list.appendChild(row);
       }
-      cols.appendChild(list);
-      const sell = h('div', { class: 'shop-sell' });
-      sell.appendChild(h('div', { class: 'pack-title' }, `Sell from ${esc(heroName(hs.id))}’s bag or the pack (half price)`));
-      const sg = h('div', { class: 'slots sellgrid' });
-      const items = [...hs.items.map((it, i) => ({ it, loc: `h:${hs.id}:${i}` })), ...G.state.pack.map((it, i) => ({ it, loc: `p:${i}` }))].filter((x) => x.it);
-      sg.innerHTML = items.length ? items.map(({ it, loc }) => `<div class="slot ${G.ITEMS[it.id].kind}" data-loc="${loc}" data-tip="item" data-item="${it.id}"><img src="${itemIcon(it.id)}" alt="">${it.n > 1 ? `<span class="n">${it.n}</span>` : ''}<span class="sp">${G.sellPrice(it.id)}${COIN}</span></div>`).join('') : '<p class="dim">Nothing to sell.</p>';
-      sg.querySelectorAll('.slot').forEach((s) => s.addEventListener('click', () => { sellItem(s.dataset.loc); m.rebuild(); }));
-      sell.appendChild(sg);
-      cols.appendChild(sell);
+      left.appendChild(list);
+      cols.appendChild(left);
+
+      const right = h('div', { class: 'shop-party' });
+      right.appendChild(h('div', { class: 'pack-title' }, 'Your party <span>click a hero to buy for them · click an item to sell one, shift-click to sell the stack · drag to move</span>'));
+      const sellSlot = (it, loc) => it
+        ? `<div class="slot ${G.ITEMS[it.id].kind} ${G.ITEMS[it.id].unique ? 'unique' : ''}" draggable="true" data-loc="${loc}" data-tip="item" data-item="${it.id}"><img src="${itemIcon(it.id)}" alt="">${it.n > 1 ? `<span class="n">${it.n}</span>` : ''}<span class="sp">${G.sellPrice(it.id)}${COIN}</span></div>`
+        : `<div class="slot empty" data-loc="${loc}"></div>`;
+      for (const ph of G.state.party) {
+        const row = h('div', { class: 'shop-hero' + (ph.id === hs.id ? ' on' : '') });
+        const free = ph.items.filter((x) => !x).length;
+        row.innerHTML = `<div class="sh-head"><img src="${G.sprites.heroPortrait(ph.id)}" alt=""><div><b>${esc(heroName(ph.id))}</b><small>Lv ${ph.level} · ${free} free</small></div></div><div class="slots shoprow">${ph.items.map((it, i) => sellSlot(it, `h:${ph.id}:${i}`)).join('')}</div>`;
+        row.addEventListener('click', (ev) => { if (ev.target.closest('.slot:not(.empty)')) return; if (shopBuyer !== ph.id) { shopBuyer = ph.id; m.rebuild(); } });
+        right.appendChild(row);
+      }
+      right.appendChild(h('div', { class: 'pack-title' }, `Shared pack <span>${G.state.pack.length} / 24</span>`));
+      const pg = h('div', { class: 'slots shoppack' });
+      let html = G.state.pack.map((it, i) => sellSlot(it, `p:${i}`)).join('');
+      for (let i = G.state.pack.length; i < 24; i++) html += `<div class="slot empty" data-loc="p:new"></div>`;
+      pg.innerHTML = html;
+      right.appendChild(pg);
+      cols.appendChild(right);
       p.appendChild(cols);
+
+      right.querySelectorAll('.slot').forEach((sl) => {
+        sl.addEventListener('dragstart', (ev) => { ev.dataTransfer.setData('text/plain', sl.dataset.loc); ev.dataTransfer.effectAllowed = 'move'; hideTip(); });
+        sl.addEventListener('dragover', (ev) => { ev.preventDefault(); sl.classList.add('over'); });
+        sl.addEventListener('dragleave', () => sl.classList.remove('over'));
+        sl.addEventListener('drop', (ev) => { ev.preventDefault(); sl.classList.remove('over'); moveItem(ev.dataTransfer.getData('text/plain'), sl.dataset.loc); });
+        sl.addEventListener('contextmenu', (ev) => ev.preventDefault());
+        sl.addEventListener('click', (ev) => { if (sl.classList.contains('empty')) return; sellItem(sl.dataset.loc, ev.shiftKey); hideTip(); m.rebuild(); });
+      });
     }, { cls: 'wide' });
+  }
+  // What an item would change for a hero if they carried it (shop tooltips).
+  function compareTip(id) {
+    const it = G.ITEMS[id], hs = G.state.party.find((x) => x.id === shopBuyer);
+    if (!it || it.kind !== 'equip' || !hs) return '';
+    const slot = hs.items.findIndex((x) => !x);
+    if (slot < 0) return `<div class="tt-cmp">${esc(heroName(hs.id))}’s bag is full, so it would go to the pack (items only work in a hero’s bag).</div>`;
+    const a = G.heroStats(hs), items = hs.items.slice(); items[slot] = { id, n: 1 };
+    const b = G.heroStats({ ...hs, items });
+    const out = [];
+    const add = (label, d, fmt = (v) => v) => { if (Math.abs(d) > 1e-6) out.push(`<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${fmt(Math.abs(d))} ${label}</span>`); };
+    add('health', b.maxHp - a.maxHp); add('mana', b.maxMp - a.maxMp); add('damage', b.dmg - a.dmg);
+    add('armor', Math.round((b.armor - a.armor) * 10) / 10);
+    add('attack speed', (a.atkCd / b.atkCd - 1) * 100, (v) => `${Math.round(v)}%`);
+    add('Str', b.str - a.str); add('Agi', b.agi - a.agi); add('Int', b.int - a.int);
+    add('health regen', Math.round((b.hpRegen - a.hpRegen) * 10) / 10, (v) => `${v}/s`);
+    add('mana regen', Math.round((b.mpRegen - a.mpRegen) * 10) / 10, (v) => `${v}/s`);
+    add('move speed', (b.speed / a.speed - 1) * 100, (v) => `${Math.round(v)}%`);
+    add('evasion', (b.evasion - a.evasion) * 100, (v) => `${Math.round(v)}%`);
+    return `<div class="tt-cmp"><div class="tt-sub">For ${esc(heroName(hs.id))}:</div>${out.length ? out.join(' · ') : 'no change to stats'}</div>`;
   }
   function buy(id, hs) {
     const price = G.itemPrice(id);
@@ -677,12 +724,14 @@ G.ui = (() => {
     G.audio.play('buy');
     UI.dirty = true;
   }
-  function sellItem(loc) {
+  function sellItem(loc, all) {
     const L = getLoc(loc);
     const it = L.arr[L.i];
     if (!it) return;
-    G.state.gold += G.sellPrice(it.id);
-    it.n--;
+    const k = all ? it.n : 1;
+    G.state.gold += G.sellPrice(it.id) * k;
+    it.n -= k;
+    if (k > 1) toast(`Sold ${k} × ${G.ITEMS[it.id].name} for ${G.sellPrice(it.id) * k} gold.`);
     if (it.n <= 0) { if (L.pack) L.arr.splice(L.i, 1); else L.arr[L.i] = null; }
     if (L.hs) { const e = G.input.heroEnt(L.hs.id); if (e) G.world.refreshHero(e); }
     G.audio.play('coin');
